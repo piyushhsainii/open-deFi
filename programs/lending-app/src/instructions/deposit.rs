@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, system_program::transfer};
+use anchor_lang::{prelude::*};
 use anchor_spl::{token::{transfer_checked, TransferChecked}, token_interface::{Mint, TokenAccount, TokenInterface}};
 
 use crate::{Bank, User};

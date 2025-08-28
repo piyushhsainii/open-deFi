@@ -8,3 +8,6 @@ pub const SOL_USD_FEED_ID: &str="ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7b
 
 #[constant]
 pub const USDC_USD_FEED_ID: &str="eaa020c61cc479712813461ce153894a96a6c00b21ed0cfc2798d1f9a9e9c94a"; 
+
+#[constant]
+pub const MAX_AGE:u64 = 100;
