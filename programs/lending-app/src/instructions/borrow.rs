@@ -92,7 +92,7 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
     let borrowable_amount = total_collateral
         .checked_mul(bank.max_ltv as u128)
         .unwrap()
-        / 10_000;                           // necessary to convert bps format into decimal.
+        / 10_000u128;                           // necessary to convert bps format into decimal.
   if borrowed_amount_in_usd > borrowable_amount {
        return Err(ErrorCode::OverBorrow.into());
   }

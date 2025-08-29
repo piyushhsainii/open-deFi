@@ -5,7 +5,7 @@ use crate::{error::ErrorCode, Bank, User};
 
 #[derive(Accounts)]
 pub struct WithDraw<'info> {
-
+    #[account(mut)]
     pub signer:Signer<'info>,
     #[account(
         mut,

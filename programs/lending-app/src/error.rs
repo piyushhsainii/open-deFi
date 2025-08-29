@@ -9,5 +9,7 @@ pub enum ErrorCode {
     #[msg("Cannot Overborrow")]
     OverBorrow,
     #[msg("Variable Overflowed!")]
-    MathOverflow
+    MathOverflow,
+    #[msg("Account is not healthy!")]
+    AccountIsHealthy
 }
