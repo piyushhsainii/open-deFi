@@ -24,8 +24,8 @@ pub fn init_bank(
     close_factor:u64,
     interest_rate:u64
 ) -> Result<()> {
-        instructions::process_init_bank(ctx,max_ltv,mint_address,liquidation_threshold,liquidation_bonus,close_factor,interest_rate);
-        Ok(())
+    instructions::process_init_bank(ctx,max_ltv,mint_address,liquidation_threshold,liquidation_bonus,close_factor,interest_rate);
+    Ok(())
 }
 pub fn init_user (ctx:Context<InitializeUser>)->Result<()> {
   instructions::process_init_user(ctx);
@@ -35,4 +35,27 @@ pub fn deposit(ctx:Context<Deposit>, amount:u64)->Result<()>{
     instructions::process_deposit(ctx,amount);
     Ok(())
 }
+
+pub fn withdraw(ctx:Context<WithDraw>,amount:u64)-> Result<()>{
+    instructions::process_withdraw(ctx, amount);
+    Ok(())
+}
+
+pub fn borrow(ctx:Context<Borrow>, amount:u64)->Result<()>{
+    instructions::process_borrow(ctx, amount);
+    Ok(())
+}
+
+pub fn repay(ctx:Context<Repay>,amount:u64)->Result<()>{
+    instructions::process_repay(ctx, amount);
+    Ok(())
+}
+
+pub fn liquidate(ctx:Context<Liquidate>)->Result<()>{
+    instructions::process_liquidate(ctx);
+    Ok(())
+    
+}
+
+
 }
