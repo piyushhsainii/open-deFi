@@ -10,13 +10,13 @@ import BorrowTab from "@/components/dashboard/tabs/borrow";
 import RepayTab from "@/components/dashboard/tabs/repay";
 import WithdrawTab from "@/components/dashboard/tabs/withdraw";
 import LiquidateTab from "@/components/dashboard/tabs/liquidate";
-import { useLendingData } from "@/hooks/use-lending";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useState } from "react";
 
 export default function DashboardPage() {
+  const [error, seterror] = useState(null);
   const { connected, publicKey, connect, disconnect, connecting } = useWallet();
-  const { data, isLoading, error } = useLendingData();
 
   const truncated = publicKey
     ? `${publicKey.toString().slice(0, 6)}...${publicKey.toString().slice(-4)}`
@@ -74,11 +74,11 @@ export default function DashboardPage() {
         </header>
 
         <section aria-label="Portfolio overview" className="mb-6">
-          <PortfolioCards loading={isLoading} data={data} />
+          <PortfolioCards loading={false} />
         </section>
 
         <section aria-label="Account summary" className="mb-8">
-          <AccountSummary loading={isLoading} data={data} />
+          <AccountSummary loading={false} />
         </section>
 
         <section aria-label="Actions" className="mb-16">

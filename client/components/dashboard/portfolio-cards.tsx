@@ -13,7 +13,12 @@ type Data = {
 
 export function PortfolioCards({
   loading,
-  data,
+  data = {
+    totalDeposited: 1,
+    totalBorrowed: 2,
+    availableToBorrow: 2,
+    healthFactor: 1,
+  },
 }: {
   loading: boolean;
   data?: Data;

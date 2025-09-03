@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { Token } from "@/lib/format";
+import { Info } from "lucide-react";
 
 export function TokenSelector({
   token,
@@ -33,19 +34,23 @@ export function TokenSelector({
         <SelectValue placeholder="Select a token" />
       </SelectTrigger>
       <SelectContent>
-        {(["USDC", "SOL"] as Token[]).map((t) => (
-          <SelectItem key={t} value={t}>
-            <span className="inline-flex items-center gap-2">
-              <img
-                src={
-                  "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/3d-glossy-dollar-coin-golden-reflective-dollar-coin-3d-illustration-png.webp"
-                }
-                alt={`${t} logo`}
-                className="h-5 w-5"
-              />
-              {t}
-            </span>
-          </SelectItem>
+        {(["USDC", "SOL"] as Token[]).map((t, idx) => (
+          <>
+            <SelectItem key={t} value={t}>
+              <span className="inline-flex items-center gap-2">
+                <img
+                  src={
+                    idx == 0
+                      ? "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/usdc-devnet.png"
+                      : "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/solana-coin.png"
+                  }
+                  alt={`${t} logo`}
+                  className="h-5 w-5"
+                />
+                {t}
+              </span>
+            </SelectItem>
+          </>
         ))}
       </SelectContent>
     </Select>
@@ -95,6 +100,9 @@ export function AmountInput({
           placeholder="0.00"
           className="border-black focus-visible:ring-0"
           aria-label={`${label} in ${token}`}
+          step={0.01}
+          type="number"
+          min="0"
         />
         <span
           className="min-w-16 rounded border border-black/10 px-3 py-2 text-center font-mono text-sm"

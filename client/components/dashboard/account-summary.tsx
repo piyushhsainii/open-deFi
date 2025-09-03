@@ -16,7 +16,10 @@ type Data = {
 
 export function AccountSummary({
   loading,
-  data,
+  data = {
+    netAPY: 1,
+    liqThreshold: 2,
+  },
 }: {
   loading: boolean;
   data?: Data;
