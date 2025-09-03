@@ -1,0 +1,11 @@
+/Users/aakashsaini/Desktop/Piyush/defi/open-deFi/target/debug/deps/thiserror-6fbfb9ec44c8f2e4.d: /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/lib.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/aserror.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/display.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/provide.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/var.rs
+
+/Users/aakashsaini/Desktop/Piyush/defi/open-deFi/target/debug/deps/libthiserror-6fbfb9ec44c8f2e4.rlib: /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/lib.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/aserror.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/display.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/provide.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/var.rs
+
+/Users/aakashsaini/Desktop/Piyush/defi/open-deFi/target/debug/deps/libthiserror-6fbfb9ec44c8f2e4.rmeta: /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/lib.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/aserror.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/display.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/provide.rs /Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/var.rs
+
+/Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/lib.rs:
+/Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/aserror.rs:
+/Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/display.rs:
+/Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/provide.rs:
+/Users/aakashsaini/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.15/src/var.rs:
