@@ -11,16 +11,6 @@ export function FaucetOnboarding() {
 
   useEffect(() => {
     if (pathname?.startsWith("/faucet")) return;
-    const dontShow =
-      typeof window !== "undefined" &&
-      localStorage.getItem("faucet_onboarding_dismissed") === "1";
-    if (dontShow) return;
-    const t = setTimeout(() => setOpen(true), 5000);
-    const auto = setTimeout(() => setOpen(false), 30000);
-    return () => {
-      clearTimeout(t);
-      clearTimeout(auto);
-    };
   }, [pathname]);
 
   if (!open) return null;
@@ -54,9 +44,6 @@ export function FaucetOnboarding() {
           <Link
             href="/faucet"
             className="rounded bg-black px-3 py-2 text-sm text-white transition hover:scale-[1.02]"
-            onClick={() =>
-              localStorage.setItem("faucet_onboarding_dismissed", "1")
-            }
           >
             Go to Faucet
           </Link>

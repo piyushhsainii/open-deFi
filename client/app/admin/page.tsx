@@ -37,10 +37,25 @@ import {
 import { useToast, toast as toastApi } from "@/hooks/use-toast";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const SUPPORTED_TOKENS = [
-  { symbol: "TOKEN1", mint: "9SFMpR2owdeZpGRLomHsDtx5rEf2bVuo3XCgSjyAVUf4" },
-  { symbol: "TOKEN2", mint: "J8NDF3RxtfZ5E2vks2NdchwE3PXNMNwUngCpEbMoLaoL" },
+export const SUPPORTED_TOKENS = [
+  {
+    symbol: "USDC",
+    mint: "9SFMpR2owdeZpGRLomHsDtx5rEf2bVuo3XCgSjyAVUf4",
+    img: "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/usdc-devnet.png",
+  },
+  {
+    symbol: "SOL",
+    mint: "J8NDF3RxtfZ5E2vks2NdchwE3PXNMNwUngCpEbMoLaoL",
+    img: "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/solana-coin.png",
+  },
 ] as const;
 
 function getAdminWallets(): string[] {
@@ -102,9 +117,6 @@ export default function AdminBankInitPage() {
     wallet.connected && wallet.publicKey
       ? adminWallets.includes(wallet.publicKey.toString())
       : false;
-
-  console.log(wallet.publicKey?.toString());
-  console.log(adminWallets[0]);
 
   const { register, handleSubmit, setValue, formState, watch, reset } =
     useForm<FormValues>({
@@ -279,17 +291,26 @@ export default function AdminBankInitPage() {
               <div className="grid gap-2">
                 <Label htmlFor="tokenMint">Token</Label>
                 {/* Native select for robustness */}
-                <select
-                  id="tokenMint"
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
-                  {...register("tokenMint")}
+                <Select
+                  onValueChange={(val) =>
+                    setValue("tokenMint", val, { shouldValidate: true })
+                  }
+                  defaultValue={SUPPORTED_TOKENS[0].mint}
                 >
-                  {SUPPORTED_TOKENS.map((t) => (
-                    <option key={t.mint} value={t.mint}>
-                      {t.symbol} — {t.mint.slice(0, 6)}…{t.mint.slice(-4)}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select a token" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORTED_TOKENS.map((t) => (
+                      <SelectItem key={t.mint} value={t.mint}>
+                        <div className="flex items-center gap-2">
+                          <img src={t.img} alt={t.symbol} className="w-4 h-4" />
+                          {t.symbol}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {formState.errors.tokenMint && (
                   <p className="text-destructive text-sm">
                     {formState.errors.tokenMint.message}

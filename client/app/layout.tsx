@@ -1,46 +1,47 @@
+import type React from "react";
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { FaucetOnboarding } from "@/components/faucet/faucet-onboarding";
+import { Suspense } from "react";
+import { FaucetFab } from "@/components/faucet/faucet-tab";
 import AppProvider from "./Provider";
-import "@solana/wallet-adapter-react-ui/styles.css";
+
 export const metadata: Metadata = {
-  title: "SolMint - Mint Your Own NFT on Solana Instantly",
+  title: "Aventira Admissions Consulting | College Admissions Experts",
   description:
-    "Create, mint, and trade NFTs on the fastest blockchain. No coding required, just pure creativity.",
-  keywords: ["Mint Your Own NFT", "Solana", "NFT", "create NFT", "blockchain"],
-  authors: [{ name: "Piyush saini" }],
-  creator: "Piyush Saini",
-  publisher: "Piyush Saini",
-  robots: "index, follow",
+    "Aventira helps students unlock top college admissions with personalized strategies, story-driven applications, and concierge-level guidance from 9th grade to acceptance.",
+  keywords: [
+    "college admissions consulting",
+    "college application help",
+    "Ivy League admissions",
+    "college essay help",
+    "university application consulting",
+    "Aventira Admissions Consulting",
+  ],
   openGraph: {
-    title: "SolMint - Mint Your Own NFT on Solana Instantly",
+    title: "Aventira Admissions Consulting | College Admissions Experts",
     description:
-      "Create, mint, and trade NFTs on the fastest blockchain. No coding required, just pure creativity.",
-    type: "website",
+      "Helping students unlock top college admissions with expert guidance and personalized strategies.",
     images: [
       {
-        url: "https://apneajyhbpncbciasirk.supabase.co/storage/v1/object/public/nft-storage/solmint-landingpage.png",
+        url: "https://res.cloudinary.com/dzow59kgu/image/upload/v1752433321/aventiraLogo_fly3dx.png",
         width: 1200,
         height: 630,
-        alt: "Liquid ETH",
+        alt: "Aventira Admissions Consulting Preview Image",
       },
     ],
-    siteName: "VoiceAI",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SolMint - Mint Your Own NFT on Solana Instantly",
-    description:
-      "Create, mint, and trade NFTs on the fastest blockchain. No coding required, just pure creativity.",
+    title: "Aventira Admissions Consulting",
+    description: "Expert college admissions consulting and essay coaching.",
     images: [
-      "https://apneajyhbpncbciasirk.supabase.co/storage/v1/object/public/nft-storage/solmint-landingpage.png",
+      "https://res.cloudinary.com/dzow59kgu/image/upload/v1752433321/aventiraLogo_fly3dx.png",
     ],
-    creator: "Piyush Saini",
   },
-  viewport: "width=device-width, initial-scale=1",
-  themeColor: "#3B82F6",
 };
 
 export default function RootLayout({
@@ -52,7 +53,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <AppProvider>
-          {children}
+          <Suspense fallback={null}>
+            {children}
+            <FaucetOnboarding />
+            <FaucetFab />
+          </Suspense>
           <Analytics />
         </AppProvider>
       </body>

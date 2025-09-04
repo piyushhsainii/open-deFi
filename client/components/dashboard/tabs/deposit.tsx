@@ -12,8 +12,11 @@ import {
   PublicKey,
   Transaction,
 } from "@solana/web3.js";
-import { getAssociatedTokenAddress } from "@solana/spl-token";
-import { LendingApp } from "../../../../programs/lending-app/src/build/lending_app";
+import {
+  getAssociatedTokenAddress,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
+import { LendingApp } from "../../../../target/types/lending_app";
 import { BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../../programs/lending-app/src/build/lending_app.json";
 import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
@@ -44,6 +47,19 @@ export default function DepositTab() {
   const connection = new Connection(clusterApiUrl("devnet"), {
     commitment: "confirmed",
   });
+
+  const getorCreateUserAccount = async (
+    program: Program<LendingApp>,
+    userATA: PublicKey
+  ) => {
+    try {
+      const userAccount = await program.account.user.fetch(userATA);
+      return userAccount;
+    } catch (error) {
+      console.log(`Error occured while fetching user ATA ${error}`);
+      return null;
+    }
+  };
 
   const onDeposit = async (connection: Connection) => {
     setState("loading");
@@ -77,38 +93,90 @@ export default function DepositTab() {
       const program: Program<LendingApp> = new Program(IDL, {
         connection: connection,
       });
-      // creating a transacation
-      const txInstruction = await program.methods
-        .deposit(new BN(2000))
-        .accounts({
-          signer: wallet.publicKey,
-          tokenMintAddress:
-            token == "USDC" ? token_address.usdc : token_address.sol,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .transaction();
-      const recentBlockHash = await connection.getLatestBlockhash({
-        commitment: "confirmed",
-      });
-      const transaction = new Transaction({
-        feePayer: wallet.publicKey,
-        blockhash: recentBlockHash.blockhash,
-        lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
-      }).add(txInstruction);
 
-      const signedTx = await wallet.signTransaction(transaction);
-      const txHash = await connection.sendRawTransaction(signedTx.serialize());
-      console.log(txHash, "Tranasaction Hash");
-
-      const confirmationTxt = await connection.confirmTransaction(
-        txHash,
-        "confirmed"
+      // checking if user account is initialized or not!
+      const [userATA, bump] = PublicKey.findProgramAddressSync(
+        [Buffer.from("user"), wallet.publicKey.toBuffer()],
+        TOKEN_2022_PROGRAM_ID
       );
-      console.log(confirmationTxt, "Transaction Confirmed");
-    } catch (e: any) {
-      setState("error");
-      setError(e?.message || "Network error");
-    }
+      try {
+        const AccountInfo = await getorCreateUserAccount(program, userATA);
+        let newAccoutInfo: {
+          depositedSol: BN;
+          depositedSolShares: BN;
+          borrowedSol: BN;
+          borrowedSolShares: BN;
+          depositedUsdc: BN;
+          depositedUsdcShares: BN;
+          borrowedUsdc: BN;
+          borrowedUsdcShares: BN;
+          mintAddress: PublicKey;
+          healthFactor: BN;
+        };
+        if (AccountInfo == null) {
+          // Initializing the user
+          const instruction = await program.methods
+            .initUser()
+            .accounts({
+              mintAddress:
+                token == "USDC" ? token_address.usdc : token_address.sol,
+              tokenProgram: TOKEN_2022_PROGRAM_ID,
+              signer: wallet.publicKey,
+            })
+            .transaction();
+
+          const latestBlockHash = await connection.getLatestBlockhash({
+            commitment: "confirmed",
+          });
+
+          const tx = new Transaction({
+            feePayer: wallet.publicKey,
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          }).add(instruction);
+
+          const txSig = await wallet.sendTransaction(tx, connection);
+          await connection.confirmTransaction(txSig, "confirmed");
+          newAccoutInfo = await program.account.user.fetch(userATA);
+          console.log(`Successfully Initialized User on Chain - ${txSig}`);
+        } else {
+          newAccoutInfo = AccountInfo;
+          console.log(`User is already initialized on Chain`);
+        }
+
+        // creating a transacation
+        const txInstruction = await program.methods
+          .deposit(new BN(2000))
+          .accounts({
+            signer: wallet.publicKey,
+            tokenMintAddress:
+              token == "USDC" ? token_address.usdc : token_address.sol,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .transaction();
+        const recentBlockHash = await connection.getLatestBlockhash({
+          commitment: "confirmed",
+        });
+        const transaction = new Transaction({
+          feePayer: wallet.publicKey,
+          blockhash: recentBlockHash.blockhash,
+          lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
+        }).add(txInstruction);
+
+        const signedTx = await wallet.sendTransaction(transaction, connection);
+
+        console.log(signedTx, "Tranasaction Hash");
+
+        const confirmationTxt = await connection.confirmTransaction(
+          signedTx,
+          "confirmed"
+        );
+        console.log(confirmationTxt, "Transaction Confirmed");
+      } catch (e: any) {
+        setState("error");
+        setError(e?.message || "Network error");
+      }
+    } catch {}
   };
 
   const getMaxBalance = async () => {

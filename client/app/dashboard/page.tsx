@@ -13,6 +13,8 @@ import LiquidateTab from "@/components/dashboard/tabs/liquidate";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
   const [error, seterror] = useState(null);
@@ -25,6 +27,10 @@ export default function DashboardPage() {
   return (
     <main className="min-h-dvh bg-white text-black">
       <div className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
+        <Link href={"/"} className="flex items-center gap-1 cursor-pointer">
+          {" "}
+          <ArrowLeft size={18} /> Back to Home{" "}
+        </Link>
         <header className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h1 className="text-pretty text-2xl font-semibold tracking-tight">
@@ -110,28 +116,24 @@ export default function DashboardPage() {
             >
               <DepositTab />
             </TabsContent>
-
             <TabsContent
               value="borrow"
               className="transition-all duration-300 ease-in-out"
             >
               <BorrowTab />
             </TabsContent>
-
             <TabsContent
               value="repay"
               className="transition-all duration-300 ease-in-out"
             >
               <RepayTab />
             </TabsContent>
-
             <TabsContent
               value="withdraw"
               className="transition-all duration-300 ease-in-out"
             >
               <WithdrawTab />
             </TabsContent>
-
             <TabsContent
               value="liquidate"
               className="transition-all duration-300 ease-in-out"

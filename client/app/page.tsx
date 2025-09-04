@@ -47,7 +47,6 @@ export default function Page() {
           </Link>
         </div>
       </header>
-
       <HeroSection />
       <FeaturesSection />
       <HowItWorksSection />

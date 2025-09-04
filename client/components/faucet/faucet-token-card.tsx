@@ -26,7 +26,12 @@ export function FaucetTokenCard({
       <div className="flex items-start justify-between">
         <div>
           <div className="text-sm text-gray-600">{token.name}</div>
-          <div className="text-lg font-semibold text-black">{token.symbol}</div>
+          <div className="flex items-center gap-1">
+            <img src={token.img} alt="" className="w-6 h-6" />
+            <div className="text-lg font-semibold text-black">
+              {token.symbol}
+            </div>
+          </div>
           <div className="mt-1 flex items-center gap-2 text-xs text-gray-600">
             <span className="font-mono">{short}</span>
             <button
