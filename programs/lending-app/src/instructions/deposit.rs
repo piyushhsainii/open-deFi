@@ -51,24 +51,26 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
     } else {
 
     // handle deposit ratio -- amount / total deposits --> Shows the ratio of the user's amount respective to vault
-    let deposit_ratio= amount.checked_div(account.bank.total_deposits).unwrap();
-    // calculating user shares -> deposit ratio x total deposit shares
-    let users_deposit_shares = account.bank.total_deposit_shares.checked_mul(deposit_ratio).unwrap();
+    let users_deposit_shares = amount
+        .checked_mul(account.bank.total_deposit_shares)
+        .unwrap()
+        .checked_div(account.bank.total_deposits)
+        .unwrap();
 
     // Handling deposit ratio
     match account.token_mint_address.to_account_info().key() {
         key if key == account.user_lending_program_acc.mint_address.key() =>{
-            account.user_lending_program_acc.deposited_usdc.checked_add(amount).unwrap();
-            account.user_lending_program_acc.deposited_usdc_shares.checked_add(users_deposit_shares).unwrap();
+            account.user_lending_program_acc.deposited_usdc = account.user_lending_program_acc.deposited_usdc.checked_add(amount).unwrap();
+            account.user_lending_program_acc.deposited_usdc_shares = account.user_lending_program_acc.deposited_usdc_shares.checked_add(users_deposit_shares).unwrap();
         },
         _ =>{
-            account.user_lending_program_acc.deposited_sol.checked_add(amount).unwrap();
-            account.user_lending_program_acc.deposited_sol_shares.checked_add(users_deposit_shares).unwrap();
+            account.user_lending_program_acc.deposited_sol = account.user_lending_program_acc.deposited_sol.checked_add(amount).unwrap();
+            account.user_lending_program_acc.deposited_sol_shares = account.user_lending_program_acc.deposited_sol_shares.checked_add(users_deposit_shares).unwrap();
         }
     }
     // Handling total deposit shares
-        account.bank.total_deposits.checked_add(amount);
-        account.bank.total_deposit_shares.checked_add(users_deposit_shares);
+        account.bank.total_deposits = account.bank.total_deposits.checked_add(amount).unwrap();
+        account.bank.total_deposit_shares = account.bank.total_deposit_shares.checked_add(users_deposit_shares).unwrap();
        }
     Ok(())
 }

@@ -58,7 +58,7 @@ user_account.borrowed_sol, bank.interest_rate, bank.last_updated
     }
     // Updating the total borrowed amount incrementing interest
     let interest_accumulated = accrued_user_borrowed_amount.checked_sub(initial_borrowed_amount).unwrap();
-    bank.total_borrowed.checked_add(interest_accumulated).unwrap();
+    bank.total_borrowed =  bank.total_borrowed.checked_add(interest_accumulated).unwrap();
 
     // transferring the amount to bank from the user's token account
     let cpi_context = CpiContext::new(
@@ -74,18 +74,18 @@ user_account.borrowed_sol, bank.interest_rate, bank.last_updated
 
     // calculating user shares and bank shares now-
     let value_per_share = bank.total_borrowed.checked_div(bank.total_borrowed_shares).unwrap();
-    let repay_amount_in_shares = value_per_share.checked_mul(amount).unwrap();
+    let repay_amount_in_shares = amount.checked_div(value_per_share).unwrap();
 
     // updating the borrow amount in user's state and bank to reflect the transfer.
-    bank.total_borrowed_shares.checked_sub(repay_amount_in_shares).unwrap();
-    bank.total_borrowed.checked_sub(amount).unwrap();
+    bank.total_borrowed_shares = bank.total_borrowed_shares.checked_sub(repay_amount_in_shares).unwrap();
+    bank.total_borrowed = bank.total_borrowed.checked_sub(amount).unwrap();
     // Updating User's borrowed status
     if ctx.accounts.repay_mint.key() == user_account.mint_address.key() { 
-        user_account.borrowed_usdc.checked_sub(amount).unwrap();
-        user_account.borrowed_usdc_shares.checked_sub(repay_amount_in_shares).unwrap();
+        user_account.borrowed_usdc = user_account.borrowed_usdc.checked_sub(amount).unwrap();
+        user_account.borrowed_usdc_shares = user_account.borrowed_usdc_shares.checked_sub(repay_amount_in_shares).unwrap();
     } else {
-        user_account.borrowed_sol.checked_sub(amount).unwrap();
-        user_account.borrowed_sol_shares.checked_sub(repay_amount_in_shares).unwrap();
+        user_account.borrowed_sol = user_account.borrowed_sol.checked_sub(amount).unwrap();
+        user_account.borrowed_sol_shares = user_account.borrowed_sol_shares.checked_sub(repay_amount_in_shares).unwrap();
     }
 
     Ok(())

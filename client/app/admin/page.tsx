@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,7 +32,7 @@ import {
 } from "@/components/ui/toast";
 import { useToast, toast as toastApi } from "@/hooks/use-toast";
 import Link from "next/link";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useAnchorWallet } from "@solana/wallet-adapter-react";
 import {
   Select,
   SelectContent,
@@ -44,6 +40,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  clusterApiUrl,
+  Connection,
+  PublicKey,
+  sendAndConfirmTransaction,
+  Transaction,
+} from "@solana/web3.js";
+import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
+import IDL from "../../../target/idl/lending_app.json";
+import { LendingApp } from "../../../target/types/lending_app";
+import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import { toast } from "sonner";
 
 export const SUPPORTED_TOKENS = [
   {
@@ -58,86 +66,119 @@ export const SUPPORTED_TOKENS = [
   },
 ] as const;
 
-function getAdminWallets(): string[] {
-  // Allows configuring from env at build-time; fallback to empty (user can update).
-  if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_ADMIN_WALLETS) {
-    return process.env.NEXT_PUBLIC_ADMIN_WALLETS.split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }
-  // TODO: Add your admin wallet(s) here or set NEXT_PUBLIC_ADMIN_WALLETS
-  return [];
-}
-
 const PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
-const formSchema = z
-  .object({
-    tokenMint: z.string().min(1, "Select a token"),
-    authority: z
-      .string()
-      .regex(PUBKEY_REGEX, "Enter a valid Solana public key"),
-    liquidationBonus: z.number().int().min(0).max(10000),
-    closeFactor: z.number().int().min(0).max(10000),
-    maxLtv: z.number().int().min(0).max(9999), // must be < 10000 (liquidation threshold)
-    interestRate: z.number().int().min(0).max(2000),
-  })
-  .refine((v) => v.maxLtv < 10000, {
-    message: "Max LTV must be less than 10000 (100%)",
-    path: ["maxLtv"],
-  });
-
-type FormValues = z.infer<typeof formSchema>;
-
-const defaultBps: Pick<
-  FormValues,
-  "liquidationBonus" | "closeFactor" | "maxLtv" | "interestRate"
-> = {
+const defaultBps = {
   liquidationBonus: 500, // 5%
   closeFactor: 5000, // 50%
   maxLtv: 8000, // 80%
   interestRate: 1000, // 10% annual
 };
 
-async function initializeBank(
-  values: FormValues
-): Promise<{ signature: string }> {
-  // simulate latency + success
-  await new Promise((r) => setTimeout(r, 1200));
-  // return a fake tx signature
-  return { signature: "5xXhQ3t...mockTxSignature...d9Pg" };
-}
-
 export default function AdminBankInitPage() {
   const router = useRouter();
   const wallet = useWallet();
+  const wallet2 = useAnchorWallet();
   const adminWallets = ["5NHvrqoZk4ov5GvKzDpsmEeW4URwLuG6P4HrmSDTqHc7"];
-  //   const adminWallets = useMemo(getAdminWallets, []);
+
+  // Form state using useState
+  const [tokenMint, setTokenMint] = useState(
+    "9SFMpR2owdeZpGRLomHsDtx5rEf2bVuo3XCgSjyAVUf4"
+  );
+  const [authority, setAuthority] = useState("");
+  const [liquidationBonus, setLiquidationBonus] = useState(
+    defaultBps.liquidationBonus
+  );
+  const [closeFactor, setCloseFactor] = useState(defaultBps.closeFactor);
+  const [maxLtv, setMaxLtv] = useState(defaultBps.maxLtv);
+  const [interestRate, setInterestRate] = useState(defaultBps.interestRate);
+  const [totalDeposits, setTotalDeposits] = useState({
+    totalDeposited: 0,
+    totalDepositedShares: 0,
+  });
+  const [totalBorrowed, setTotalBorrowed] = useState({
+    totalBorrowed: 0,
+    totalBorrowedShares: 0,
+  });
+  // Form validation errors
+  const [errors, setErrors] = useState({
+    tokenMint: "",
+    authority: "",
+    liquidationBonus: "",
+    closeFactor: "",
+    maxLtv: "",
+    interestRate: "",
+  });
+
+  // Bank initialization states
+  const [isBankInitialized, setIsBankInitialized] = useState(false);
+  const [isCheckingBankStatus, setIsCheckingBankStatus] = useState(false);
+  const [lastUpdated, setlastUpdated] = useState<any>(null);
+  // Dialog and loading states
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [ackIrreversible, setAckIrreversible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const isAdmin =
     wallet.connected && wallet.publicKey
       ? adminWallets.includes(wallet.publicKey.toString())
       : false;
 
-  const { register, handleSubmit, setValue, formState, watch, reset } =
-    useForm<FormValues>({
-      resolver: zodResolver(formSchema),
-      defaultValues: {
-        tokenMint: SUPPORTED_TOKENS[0].mint,
-        authority: wallet.publicKey?.toString() ?? "",
-        ...defaultBps,
-      },
-      mode: "onChange",
-    });
-
-  // keep authority in sync with connected wallet to help admins
+  // Update authority when wallet connects
   useEffect(() => {
-    if (wallet.publicKey) setValue("authority", wallet.publicKey.toString());
-  }, [wallet.publicKey, setValue]);
+    if (wallet.publicKey) {
+      setAuthority(wallet.publicKey.toString());
+    }
+  }, [wallet.publicKey]);
 
-  const values = watch();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [ackIrreversible, setAckIrreversible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Check bank initialization status when tokenMint or wallet changes
+  useEffect(() => {
+    if (wallet2 && tokenMint) {
+      checkIfBankIsInitialized();
+    }
+  }, [wallet2, tokenMint]);
+
+  // Validation functions
+  const validateForm = () => {
+    const newErrors = {
+      tokenMint: "",
+      authority: "",
+      liquidationBonus: "",
+      closeFactor: "",
+      maxLtv: "",
+      interestRate: "",
+    };
+
+    if (!tokenMint) {
+      newErrors.tokenMint = "Select a token";
+    }
+
+    if (!authority) {
+      newErrors.authority = "Authority is required";
+    } else if (!PUBKEY_REGEX.test(authority)) {
+      newErrors.authority = "Enter a valid Solana public key";
+    }
+
+    if (liquidationBonus < 0 || liquidationBonus > 10000) {
+      newErrors.liquidationBonus = "Must be between 0 and 10000";
+    }
+
+    if (closeFactor < 0 || closeFactor > 10000) {
+      newErrors.closeFactor = "Must be between 0 and 10000";
+    }
+
+    if (maxLtv < 0 || maxLtv >= 10000) {
+      newErrors.maxLtv =
+        "Must be between 0 and 9999 (less than liquidation threshold)";
+    }
+
+    if (interestRate < 0 || interestRate > 2000) {
+      newErrors.interestRate = "Must be between 0 and 2000";
+    }
+
+    setErrors(newErrors);
+    return Object.values(newErrors).every((error) => error === "");
+  };
 
   function InlineToaster() {
     const { toasts, dismiss } = useToast();
@@ -158,7 +199,54 @@ export default function AdminBankInitPage() {
     );
   }
 
-  const onSubmit = () => {
+  const checkIfBankIsInitialized = async () => {
+    if (!wallet2 || !tokenMint || !wallet) return;
+    setIsCheckingBankStatus(true);
+    try {
+      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+      const provider = new AnchorProvider(connection, wallet2, {
+        commitment: "confirmed",
+      });
+      const program = new Program<LendingApp>(IDL, provider);
+
+      const [bankAddress] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bank"), new PublicKey(tokenMint).toBuffer()],
+        program.programId
+      );
+
+      const bankAccount = await program.account.bank.fetch(bankAddress);
+      if (bankAccount) {
+        console.log(`Bank already initialized:`, bankAccount);
+        setTotalDeposits({
+          totalDeposited: bankAccount.totalDeposits,
+          totalDepositedShares: bankAccount.totalDepositShares,
+        });
+        setTotalBorrowed({
+          totalBorrowed: bankAccount.totalBorrowed,
+          totalBorrowedShares: bankAccount.totalBorrowedShares,
+        });
+        setlastUpdated(bankAccount.lastUpdated);
+        setAuthority(bankAccount.authority.toString());
+        setLiquidationBonus(bankAccount.liquidationBonus);
+        setCloseFactor(bankAccount.closeFactor);
+        setMaxLtv(bankAccount.maxLtv);
+        setInterestRate(bankAccount.interestRate);
+        setIsBankInitialized(true);
+      } else {
+        setIsBankInitialized(false);
+      }
+    } catch (error) {
+      console.log("Bank not initialized yet or error:", error);
+      setIsBankInitialized(false);
+    } finally {
+      setIsCheckingBankStatus(false);
+    }
+  };
+
+  const onSubmit = (e: any) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
     // open confirm modal first
     setAckIrreversible(false);
     setConfirmOpen(true);
@@ -167,24 +255,89 @@ export default function AdminBankInitPage() {
   const onConfirm = async () => {
     setIsSubmitting(true);
     try {
-      const res = await initializeBank(values);
+      if (!wallet?.publicKey || !wallet || !wallet.signTransaction) {
+        toast("Wallet not connected");
+        return;
+      }
+
+      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+      const provider = new AnchorProvider(connection, wallet2!, {
+        commitment: "confirmed",
+      });
+      const program = new Program<LendingApp>(IDL, provider);
+
+      // Check if bank is already initialized
+      const [bankAddress] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bank"), new PublicKey(tokenMint).toBuffer()],
+        program.programId
+      );
+
+      try {
+        const existingBank = await program.account.bank.fetch(bankAddress);
+        if (existingBank) {
+          toast("Bank is already initialized for this token");
+          setIsBankInitialized(true);
+          setConfirmOpen(false);
+          return;
+        }
+      } catch (error) {
+        // Bank doesn't exist, proceed with initialization
+      }
+
+      const instruction = await program.methods
+        .initBank(
+          new BN(7500),
+          new PublicKey(tokenMint),
+          new BN(8500),
+          new BN(liquidationBonus),
+          new BN(closeFactor),
+          new BN(interestRate)
+        )
+        .accounts({
+          tokenMintAddress: new PublicKey(tokenMint),
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+          signer: wallet?.publicKey,
+        })
+        .instruction();
+
+      const recentBlockHash = await connection.getLatestBlockhash({
+        commitment: "confirmed",
+      });
+      const tx = new Transaction({
+        feePayer: wallet.publicKey,
+        blockhash: recentBlockHash.blockhash,
+        lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
+      }).add(instruction);
+
+      const simResult = await connection.simulateTransaction(tx);
+      console.log("Simulation result:", simResult.value);
+      if (simResult.value.err) {
+        console.error("Simulation failed:", simResult.value.logs);
+        throw new Error("Simulation failed. Check program logs above.");
+      }
+
+      const txSig = await wallet.sendTransaction(tx, connection);
+      console.log(`Successfully done Tx signature - `, txSig);
+      await connection.confirmTransaction(txSig);
+
       toastApi({
         title: "Bank initialized",
-        description: `Transaction: ${res.signature}`,
+        description: `Transaction: ${txSig}`,
       });
+
       setConfirmOpen(false);
-      // optional: reset and navigate to dashboard
-      reset({
-        tokenMint: values.tokenMint,
-        authority: wallet.publicKey?.toString() ?? "",
-        ...defaultBps,
-      });
-      router.push("/dashboard");
-    } catch (err) {
-      toastApi({
-        title: "Initialization failed",
-        description: "Please check your connection and try again.",
-      });
+      setIsBankInitialized(true);
+
+      // Reset form
+      setTokenMint(SUPPORTED_TOKENS[0].mint);
+      setAuthority(wallet.publicKey?.toString() ?? "");
+      setLiquidationBonus(defaultBps.liquidationBonus);
+      setCloseFactor(defaultBps.closeFactor);
+      setMaxLtv(defaultBps.maxLtv);
+      setInterestRate(defaultBps.interestRate);
+    } catch (error) {
+      console.error("Error initializing bank:", error);
+      toast("Failed to initialize bank. Check console for details.");
     } finally {
       setIsSubmitting(false);
     }
@@ -214,8 +367,6 @@ export default function AdminBankInitPage() {
                   ?.slice(0, 6)}…${wallet.publicKey?.toString().slice(-4)}`
               : "Not connected"}
           </span>
-          {/* Use existing connect wallet button */}
-          {/* We keep a quick inline button here for convenience */}
           <Button
             variant="outline"
             onClick={wallet.connected ? wallet.disconnect : wallet.connect}
@@ -278,23 +429,35 @@ export default function AdminBankInitPage() {
           </CardFooter>
         </Card>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
+        <form onSubmit={onSubmit} className="grid gap-6">
           {/* Bank selection */}
           <Card>
             <CardHeader>
               <CardTitle>Bank Selection</CardTitle>
               <CardDescription>
                 Choose the token mint to initialize.
+                {isCheckingBankStatus && (
+                  <span className="ml-2 inline-flex items-center gap-2 text-blue-600">
+                    <Spinner size={12} /> Checking bank status...
+                  </span>
+                )}
+                {!isCheckingBankStatus && isBankInitialized && (
+                  <span className="ml-2 text-green-600 font-medium">
+                    ✅ Bank already initialized
+                  </span>
+                )}
+                {!isCheckingBankStatus && !isBankInitialized && (
+                  <span className="ml-2 text-orange-600 font-medium">
+                    ⚠️ Bank not initialized
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <Label htmlFor="tokenMint">Token</Label>
-                {/* Native select for robustness */}
                 <Select
-                  onValueChange={(val) =>
-                    setValue("tokenMint", val, { shouldValidate: true })
-                  }
+                  onValueChange={(val) => setTokenMint(val)}
                   defaultValue={SUPPORTED_TOKENS[0].mint}
                 >
                   <SelectTrigger className="w-[200px]">
@@ -311,16 +474,14 @@ export default function AdminBankInitPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {formState.errors.tokenMint && (
-                  <p className="text-destructive text-sm">
-                    {formState.errors.tokenMint.message}
-                  </p>
+                {errors.tokenMint && (
+                  <p className="text-destructive text-sm">{errors.tokenMint}</p>
                 )}
               </div>
 
               <div className="grid gap-2">
                 <Label>Mint Address</Label>
-                <Input readOnly value={values.tokenMint} />
+                <Input readOnly value={tokenMint} />
               </div>
             </CardContent>
           </Card>
@@ -340,14 +501,11 @@ export default function AdminBankInitPage() {
                 <Input
                   id="authority"
                   placeholder="Admin public key"
-                  {...register("authority", {
-                    setValueAs: (v) => String(v).trim(),
-                  })}
+                  value={authority}
+                  onChange={(e) => setAuthority(e.target.value.trim())}
                 />
-                {formState.errors.authority && (
-                  <p className="text-destructive text-sm">
-                    {formState.errors.authority.message}
-                  </p>
+                {errors.authority && (
+                  <p className="text-destructive text-sm">{errors.authority}</p>
                 )}
               </div>
 
@@ -369,15 +527,18 @@ export default function AdminBankInitPage() {
                   inputMode="numeric"
                   min={0}
                   max={10000}
-                  {...register("liquidationBonus", { valueAsNumber: true })}
+                  value={liquidationBonus}
+                  onChange={(e) =>
+                    setLiquidationBonus(parseInt(e.target.value) || 0)
+                  }
                 />
-                {formState.errors.liquidationBonus && (
+                {errors.liquidationBonus && (
                   <p className="text-destructive text-sm">
-                    {formState.errors.liquidationBonus.message}
+                    {errors.liquidationBonus}
                   </p>
                 )}
                 <p className="text-muted-foreground text-xs">
-                  Preview: {percent(values.liquidationBonus || 0)}
+                  Preview: {percent(liquidationBonus || 0)}
                 </p>
               </div>
 
@@ -389,15 +550,18 @@ export default function AdminBankInitPage() {
                   inputMode="numeric"
                   min={0}
                   max={10000}
-                  {...register("closeFactor", { valueAsNumber: true })}
+                  value={closeFactor}
+                  onChange={(e) =>
+                    setCloseFactor(parseInt(e.target.value) || 0)
+                  }
                 />
-                {formState.errors.closeFactor && (
+                {errors.closeFactor && (
                   <p className="text-destructive text-sm">
-                    {formState.errors.closeFactor.message}
+                    {errors.closeFactor}
                   </p>
                 )}
                 <p className="text-muted-foreground text-xs">
-                  Preview: {percent(values.closeFactor || 0)}
+                  Preview: {percent(closeFactor || 0)}
                 </p>
               </div>
 
@@ -409,15 +573,14 @@ export default function AdminBankInitPage() {
                   inputMode="numeric"
                   min={0}
                   max={9999}
-                  {...register("maxLtv", { valueAsNumber: true })}
+                  value={maxLtv}
+                  onChange={(e) => setMaxLtv(parseInt(e.target.value) || 0)}
                 />
-                {formState.errors.maxLtv && (
-                  <p className="text-destructive text-sm">
-                    {formState.errors.maxLtv.message}
-                  </p>
+                {errors.maxLtv && (
+                  <p className="text-destructive text-sm">{errors.maxLtv}</p>
                 )}
                 <p className="text-muted-foreground text-xs">
-                  Preview: {percent(values.maxLtv || 0)}
+                  Preview: {percent(maxLtv || 0)}
                 </p>
               </div>
 
@@ -431,37 +594,40 @@ export default function AdminBankInitPage() {
                   inputMode="numeric"
                   min={0}
                   max={2000}
-                  {...register("interestRate", { valueAsNumber: true })}
+                  value={interestRate}
+                  onChange={(e) =>
+                    setInterestRate(parseInt(e.target.value) || 0)
+                  }
                 />
-                {formState.errors.interestRate && (
+                {errors.interestRate && (
                   <p className="text-destructive text-sm">
-                    {formState.errors.interestRate.message}
+                    {errors.interestRate}
                   </p>
                 )}
                 <p className="text-muted-foreground text-xs">
-                  Preview: {percent(values.interestRate || 0)}
+                  Preview: {percent(interestRate || 0)}
                 </p>
               </div>
 
               <div className="grid gap-2">
                 <Label>Total Deposits</Label>
-                <Input readOnly value="0" />
+                <Input readOnly value={totalDeposits.totalDeposited} />
               </div>
               <div className="grid gap-2">
                 <Label>Total Deposit Shares</Label>
-                <Input readOnly value="0" />
+                <Input readOnly value={totalDeposits.totalDepositedShares} />
               </div>
               <div className="grid gap-2">
                 <Label>Total Borrowed</Label>
-                <Input readOnly value="0" />
+                <Input readOnly value={totalBorrowed.totalBorrowed} />
               </div>
               <div className="grid gap-2">
                 <Label>Total Borrowed Shares</Label>
-                <Input readOnly value="0" />
+                <Input readOnly value={totalBorrowed.totalBorrowedShares} />
               </div>
               <div className="grid gap-2">
                 <Label>Last Updated</Label>
-                <Input readOnly value={new Date().toLocaleString()} />
+                <Input readOnly value={lastUpdated ?? "0"} />
               </div>
             </CardContent>
             <CardFooter className="flex items-center justify-between gap-4">
@@ -470,112 +636,123 @@ export default function AdminBankInitPage() {
                 continuing.
               </p>
 
-              <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    type="submit"
-                    disabled={!formState.isValid || wallet.connecting}
-                    className="bg-black text-white hover:opacity-90"
-                  >
-                    Initialize Bank
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Confirm Initialization</DialogTitle>
-                    <DialogDescription>
-                      Review and confirm the parameters below.
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="grid gap-2 text-sm">
-                    <div className="grid grid-cols-2 gap-2">
-                      <span className="text-muted-foreground">Token</span>
-                      <span>
-                        {
-                          SUPPORTED_TOKENS.find(
-                            (t) => t.mint === values.tokenMint
-                          )?.symbol
-                        }{" "}
-                        ({values.tokenMint})
-                      </span>
-
-                      <span className="text-muted-foreground">Authority</span>
-                      <span className="break-all">{values.authority}</span>
-
-                      <span className="text-muted-foreground">
-                        Liquidation Threshold
-                      </span>
-                      <span>10000 bps (100%)</span>
-
-                      <span className="text-muted-foreground">Max LTV</span>
-                      <span>
-                        {values.maxLtv} bps ({percent(values.maxLtv || 0)})
-                      </span>
-
-                      <span className="text-muted-foreground">
-                        Close Factor
-                      </span>
-                      <span>
-                        {values.closeFactor} bps (
-                        {percent(values.closeFactor || 0)})
-                      </span>
-
-                      <span className="text-muted-foreground">
-                        Liquidation Bonus
-                      </span>
-                      <span>
-                        {values.liquidationBonus} bps (
-                        {percent(values.liquidationBonus || 0)})
-                      </span>
-
-                      <span className="text-muted-foreground">
-                        Interest Rate (annual)
-                      </span>
-                      <span>
-                        {values.interestRate} bps (
-                        {percent(values.interestRate || 0)})
-                      </span>
-                    </div>
-
-                    <label className="mt-3 flex items-start gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5"
-                        checked={ackIrreversible}
-                        onChange={(e) => setAckIrreversible(e.target.checked)}
-                        aria-label="Acknowledge irreversible action"
-                      />
-                      <span>
-                        I understand this action will initialize the bank and is
-                        irreversible.
-                      </span>
-                    </label>
-                  </div>
-
-                  <DialogFooterUI>
+              {!isBankInitialized && (
+                <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                  <DialogTrigger asChild>
                     <Button
-                      variant="outline"
-                      onClick={() => setConfirmOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={onConfirm}
-                      disabled={!ackIrreversible || isSubmitting}
+                      type="submit"
+                      disabled={wallet.connecting || isCheckingBankStatus}
                       className="bg-black text-white hover:opacity-90"
                     >
-                      {isSubmitting ? (
+                      {isCheckingBankStatus ? (
                         <span className="inline-flex items-center gap-2">
-                          <Spinner size={16} /> Initializing…
+                          <Spinner size={16} /> Checking...
                         </span>
                       ) : (
-                        "Confirm & Initialize"
+                        "Initialize Bank"
                       )}
                     </Button>
-                  </DialogFooterUI>
-                </DialogContent>
-              </Dialog>
+                  </DialogTrigger>
+                  <DialogContent className="overflow-hidden">
+                    <DialogHeader>
+                      <DialogTitle>Confirm Initialization</DialogTitle>
+                      <DialogDescription>
+                        Review and confirm the parameters below.
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid gap-2 text-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <span className="text-muted-foreground">Token</span>
+                        <span>
+                          {
+                            SUPPORTED_TOKENS.find((t) => t.mint === tokenMint)
+                              ?.symbol
+                          }{" "}
+                          ({tokenMint})
+                        </span>
+
+                        <span className="text-muted-foreground">Authority</span>
+                        <span className="break-all">{authority}</span>
+
+                        <span className="text-muted-foreground">
+                          Liquidation Threshold
+                        </span>
+                        <span>10000 bps (100%)</span>
+
+                        <span className="text-muted-foreground">Max LTV</span>
+                        <span>
+                          {maxLtv} bps ({percent(maxLtv || 0)})
+                        </span>
+
+                        <span className="text-muted-foreground">
+                          Close Factor
+                        </span>
+                        <span>
+                          {closeFactor} bps ({percent(closeFactor || 0)})
+                        </span>
+
+                        <span className="text-muted-foreground">
+                          Liquidation Bonus
+                        </span>
+                        <span>
+                          {liquidationBonus} bps (
+                          {percent(liquidationBonus || 0)})
+                        </span>
+
+                        <span className="text-muted-foreground">
+                          Interest Rate (annual)
+                        </span>
+                        <span>
+                          {interestRate} bps ({percent(interestRate || 0)})
+                        </span>
+                      </div>
+
+                      <label className="mt-3 flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={ackIrreversible}
+                          onChange={(e) => setAckIrreversible(e.target.checked)}
+                          aria-label="Acknowledge irreversible action"
+                        />
+                        <span>
+                          I understand this action will initialize the bank and
+                          is irreversible.
+                        </span>
+                      </label>
+                    </div>
+
+                    <DialogFooterUI>
+                      <Button
+                        variant="outline"
+                        onClick={() => setConfirmOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={onConfirm}
+                        disabled={!ackIrreversible || isSubmitting}
+                        className="bg-black text-white hover:opacity-90"
+                      >
+                        {isSubmitting ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Spinner size={16} /> Initializing…
+                          </span>
+                        ) : (
+                          "Confirm & Initialize"
+                        )}
+                      </Button>
+                    </DialogFooterUI>
+                  </DialogContent>
+                </Dialog>
+              )}
+
+              {isBankInitialized && (
+                <div className="text-sm text-green-600 font-medium">
+                  Bank is already initialized for this token
+                </div>
+              )}
             </CardFooter>
           </Card>
         </form>

@@ -18,8 +18,6 @@ import { FaucetAmounts } from "@/components/faucet/faucet-amounts";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Coins, Loader2 } from "lucide-react";
-import IDL from "../../../programs/lending-app/src/build/lending_app.json";
-import { LendingApp } from "../../../programs/lending-app/src/build/lending_app";
 import { AirDropTokensToUser } from "@/lib/server";
 
 export default function FaucetPage() {

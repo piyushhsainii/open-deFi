@@ -5,13 +5,11 @@ import { Button } from "@/components/ui/button";
 import { TokenSelector, AmountInput, FieldHelp, Feedback } from "./common";
 import { useState, useMemo } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useLendingData } from "@/hooks/use-lending";
 import { type Token, parseAmount } from "@/lib/format";
 import { Progress } from "@/components/ui/progress";
 
 export default function BorrowTab() {
   const { connected } = useWallet();
-  const { data, borrow } = useLendingData();
   const [token, setToken] = useState<Token>("USDC");
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">(
@@ -20,15 +18,15 @@ export default function BorrowTab() {
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  const available = data?.availableToBorrow ?? 0;
+  const available = 0;
   const amt = parseAmount(value, token);
 
   const ratio = useMemo(() => {
-    const borrowed = (data?.totalBorrowed ?? 0) + toUSD(amt, token);
-    const deposited = data?.totalDeposited ?? 1;
+    const borrowed = 0 + toUSD(amt, token);
+    const deposited = 1;
     const pct = Math.min(100, Math.max(0, (borrowed / deposited) * 100));
     return isFinite(pct) ? pct : 0;
-  }, [amt, data, token]);
+  }, [amt, token]);
 
   const risk = ratio > 80 ? "High" : ratio > 60 ? "Elevated" : "Low";
 
@@ -47,9 +45,9 @@ export default function BorrowTab() {
       return;
     }
     try {
-      const { tx } = await borrow(token, amt);
+      // const { tx } = await borrow(token, amt);
       setState("success");
-      setHash(tx);
+      setHash("tx");
       setValue("");
     } catch (e: any) {
       setState("error");
@@ -82,9 +80,9 @@ export default function BorrowTab() {
             <span className="font-mono">${available.toFixed(2)}</span> • Borrow
             APY:{" "}
             <span className="font-mono">
-              {token === "USDC"
+              {/* {token === "USDC"
                 ? data?.rates.usdc.borrowAPY
-                : data?.rates.sol.borrowAPY}
+                : data?.rates.sol.borrowAPY} */}
               %
             </span>
           </FieldHelp>

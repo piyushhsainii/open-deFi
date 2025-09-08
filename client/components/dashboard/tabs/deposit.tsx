@@ -53,14 +53,16 @@ export default function DepositTab() {
     userATA: PublicKey
   ) => {
     try {
-      const userAccount = await program.account.user.fetch(userATA);
+      const allAcc = await program.account.user.all();
+
+      console.log(allAcc);
+      const userAccount = await program.account.user.fetch(userATA.toString());
       return userAccount;
     } catch (error) {
       console.log(`Error occured while fetching user ATA ${error}`);
       return null;
     }
   };
-
   const onDeposit = async (connection: Connection) => {
     setState("loading");
     setError(undefined);
@@ -97,7 +99,7 @@ export default function DepositTab() {
       // checking if user account is initialized or not!
       const [userATA, bump] = PublicKey.findProgramAddressSync(
         [Buffer.from("user"), wallet.publicKey.toBuffer()],
-        TOKEN_2022_PROGRAM_ID
+        program.programId
       );
       try {
         const AccountInfo = await getorCreateUserAccount(program, userATA);
@@ -115,6 +117,7 @@ export default function DepositTab() {
         };
         if (AccountInfo == null) {
           // Initializing the user
+          console.log(`Initializing the user ATA!`);
           const instruction = await program.methods
             .initUser()
             .accounts({
@@ -123,7 +126,7 @@ export default function DepositTab() {
               tokenProgram: TOKEN_2022_PROGRAM_ID,
               signer: wallet.publicKey,
             })
-            .transaction();
+            .instruction();
 
           const latestBlockHash = await connection.getLatestBlockhash({
             commitment: "confirmed",
@@ -143,17 +146,26 @@ export default function DepositTab() {
           newAccoutInfo = AccountInfo;
           console.log(`User is already initialized on Chain`);
         }
-
+        console.log(`Deriving user's account token ATA`);
+        const yuserTokenATA = await getAssociatedTokenAddress(
+          token == "USDC"
+            ? new PublicKey(token_address.usdc)
+            : new PublicKey(token_address.sol),
+          wallet.publicKey,
+          false,
+          program.programId
+        );
+        console.log("Creating Instruction to deposit the amount");
         // creating a transacation
         const txInstruction = await program.methods
-          .deposit(new BN(2000))
+          .deposit(new BN(Number(value)))
           .accounts({
             signer: wallet.publicKey,
             tokenMintAddress:
               token == "USDC" ? token_address.usdc : token_address.sol,
             tokenProgram: TOKEN_PROGRAM_ID,
           })
-          .transaction();
+          .instruction();
         const recentBlockHash = await connection.getLatestBlockhash({
           commitment: "confirmed",
         });
@@ -176,7 +188,9 @@ export default function DepositTab() {
         setState("error");
         setError(e?.message || "Network error");
       }
-    } catch {}
+    } catch {
+      console.log("came in catch");
+    }
   };
 
   const getMaxBalance = async () => {

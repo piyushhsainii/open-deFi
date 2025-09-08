@@ -34,22 +34,20 @@ export function TokenSelector({
       </SelectTrigger>
       <SelectContent>
         {(["USDC", "SOL"] as Token[]).map((t, idx) => (
-          <>
-            <SelectItem key={t} value={t}>
-              <span className="inline-flex items-center gap-2">
-                <img
-                  src={
-                    idx == 0
-                      ? "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/usdc-devnet.png"
-                      : "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/solana-coin.png"
-                  }
-                  alt={`${t} logo`}
-                  className="h-5 w-5"
-                />
-                {t}
-              </span>
-            </SelectItem>
-          </>
+          <SelectItem key={t} value={t}>
+            <span className="inline-flex items-center gap-2">
+              <img
+                src={
+                  idx == 0
+                    ? "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/usdc-devnet.png"
+                    : "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/solana-coin.png"
+                }
+                alt={`${t} logo`}
+                className="h-5 w-5"
+              />
+              {t}
+            </span>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>

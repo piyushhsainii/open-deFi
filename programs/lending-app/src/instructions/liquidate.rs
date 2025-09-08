@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::transfer_with_seed;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{transfer_checked, TransferChecked};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};

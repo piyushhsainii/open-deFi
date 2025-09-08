@@ -1,14 +1,28 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
+export const nextConfig = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: require.resolve("crypto-browserify"),
+        stream: require.resolve("stream-browserify"),
+        url: require.resolve("url"),
+        zlib: require.resolve("browserify-zlib"),
+        http: require.resolve("stream-http"),
+        https: require.resolve("https-browserify"),
+        assert: require.resolve("assert"),
+        os: false,
+        path: false,
+        "pino-pretty": false, // ← Add this line
+      };
+    }
+    return config;
   },
-  typescript: {
-    ignoreBuildErrors: true,
+  experimental: {
+    esmExternals: "loose",
   },
-  images: {
-    unoptimized: true,
-  },
-}
-
-export default nextConfig
+  transpilePackages: ["@solana/wallet-adapter-base"],
+};
