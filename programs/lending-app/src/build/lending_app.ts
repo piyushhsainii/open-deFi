@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/lending_app.json`.
  */
 export type LendingApp = {
-  "address": "F6Laudmy1RaE4kdwTAtKCks3Hf4X5Be8RH9z63dUMVMi",
+  "address": "CmQZHCFuXuTVqfb2gZAFvm7AJKhxz6A7gYyvTJ17RUNm",
   "metadata": {
     "name": "lendingApp",
     "version": "0.1.0",
@@ -1067,6 +1067,41 @@ export type LendingApp = {
       "code": 6004,
       "name": "accountIsHealthy",
       "msg": "Account is not healthy!"
+    },
+    {
+      "code": 6005,
+      "name": "insufficientBankFunds",
+      "msg": "Insufficient funds in bank"
+    },
+    {
+      "code": 6006,
+      "name": "invalidBankState",
+      "msg": "Invalid bank state - no shares exist"
+    },
+    {
+      "code": 6007,
+      "name": "noDepositsFound",
+      "msg": "No deposits found for this user"
+    },
+    {
+      "code": 6008,
+      "name": "exceedsMaxWithdrawal",
+      "msg": "Withdrawal amount exceeds maximum withdrawable"
+    },
+    {
+      "code": 6009,
+      "name": "invalidWithdrawalAmount",
+      "msg": "Invalid withdrawal amount"
+    },
+    {
+      "code": 6010,
+      "name": "insufficientShares",
+      "msg": "Insufficient shares for withdrawal"
+    },
+    {
+      "code": 6011,
+      "name": "insufficientUserBalance",
+      "msg": "Insufficient user balance"
     }
   ],
   "types": [

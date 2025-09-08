@@ -5,7 +5,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-lending_app = "F6Laudmy1RaE4kdwTAtKCks3Hf4X5Be8RH9z63dUMVMi"
+lending_app = "CmQZHCFuXuTVqfb2gZAFvm7AJKhxz6A7gYyvTJ17RUNm"
 
 [registry]
 url = "https://api.apr.dev"

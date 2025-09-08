@@ -1,5 +1,5 @@
 {
-  "address": "F6Laudmy1RaE4kdwTAtKCks3Hf4X5Be8RH9z63dUMVMi",
+  "address": "CmQZHCFuXuTVqfb2gZAFvm7AJKhxz6A7gYyvTJ17RUNm",
   "metadata": {
     "name": "lending_app",
     "version": "0.1.0",
@@ -1061,6 +1061,41 @@
       "code": 6004,
       "name": "AccountIsHealthy",
       "msg": "Account is not healthy!"
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientBankFunds",
+      "msg": "Insufficient funds in bank"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidBankState",
+      "msg": "Invalid bank state - no shares exist"
+    },
+    {
+      "code": 6007,
+      "name": "NoDepositsFound",
+      "msg": "No deposits found for this user"
+    },
+    {
+      "code": 6008,
+      "name": "ExceedsMaxWithdrawal",
+      "msg": "Withdrawal amount exceeds maximum withdrawable"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidWithdrawalAmount",
+      "msg": "Invalid withdrawal amount"
+    },
+    {
+      "code": 6010,
+      "name": "InsufficientShares",
+      "msg": "Insufficient shares for withdrawal"
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientUserBalance",
+      "msg": "Insufficient user balance"
     }
   ],
   "types": [
