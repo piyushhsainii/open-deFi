@@ -147,7 +147,7 @@ export default function DepositTab() {
           console.log(`User is already initialized on Chain`);
         }
         console.log(`Deriving user's account token ATA`);
-        const yuserTokenATA = await getAssociatedTokenAddress(
+        const userTokenATA = await getAssociatedTokenAddress(
           token == "USDC"
             ? new PublicKey(token_address.usdc)
             : new PublicKey(token_address.sol),

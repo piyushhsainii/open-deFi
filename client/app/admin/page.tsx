@@ -286,9 +286,9 @@ export default function AdminBankInitPage() {
 
       const instruction = await program.methods
         .initBank(
-          new BN(7500),
+          new BN(7000),
           new PublicKey(tokenMint),
-          new BN(8500),
+          new BN(8000),
           new BN(liquidationBonus),
           new BN(closeFactor),
           new BN(interestRate)

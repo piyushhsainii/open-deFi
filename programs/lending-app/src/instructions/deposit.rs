@@ -25,8 +25,16 @@ pub struct Deposit<'info> {
         bump
     )]
     pub user_lending_program_acc:Account<'info,User>,
+    #[account(
+        mut,
+        associated_token::mint=token_mint_address,
+        associated_token::authority=signer,
+        associated_token::token_program=token_program_2022
+    )]
+    pub user_token_account:InterfaceAccount<'info,TokenAccount>,
     pub token_mint_address:InterfaceAccount<'info,Mint>,
     pub token_program: Interface<'info, TokenInterface>,
+    pub token_program_2022: Interface<'info, TokenInterface>,
 }
 
 pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
@@ -35,7 +43,7 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
     let ix = CpiContext::new(
         account.token_program.to_account_info(),
         TransferChecked {
-        from:account.user_lending_program_acc.to_account_info(),
+        from:account.user_token_account.to_account_info(),
         to:account.token_bank_acc.to_account_info(),
         authority:account.signer.to_account_info(),
         mint:account.token_mint_address.to_account_info()
