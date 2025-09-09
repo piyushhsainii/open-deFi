@@ -21,7 +21,7 @@ pub struct Deposit<'info> {
     pub token_bank_acc:InterfaceAccount<'info,TokenAccount>,
     #[account(
         mut,
-        seeds=[b"user",token_mint_address.key().as_ref()],
+        seeds=[b"user",signer.key().as_ref()],
         bump
     )]
     pub user_lending_program_acc:Account<'info,User>,
@@ -41,7 +41,7 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
     let account = &mut ctx.accounts;
     // CPI -> Transfer the user's funds into the bank's vault. 
     let ix = CpiContext::new(
-        account.token_program.to_account_info(),
+        account.token_program_2022.to_account_info(),
         TransferChecked {
         from:account.user_token_account.to_account_info(),
         to:account.token_bank_acc.to_account_info(),

@@ -13,13 +13,13 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
+  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import { LendingApp } from "../../../../target/types/lending_app";
 import { BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../../programs/lending-app/src/build/lending_app.json";
-import { TOKEN_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/utils/token";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
 import {
@@ -53,9 +53,6 @@ export default function DepositTab() {
     userATA: PublicKey
   ) => {
     try {
-      const allAcc = await program.account.user.all();
-
-      console.log(allAcc);
       const userAccount = await program.account.user.fetch(userATA.toString());
       return userAccount;
     } catch (error) {
@@ -63,6 +60,7 @@ export default function DepositTab() {
       return null;
     }
   };
+
   const onDeposit = async (connection: Connection) => {
     setState("loading");
     setError(undefined);
@@ -96,6 +94,8 @@ export default function DepositTab() {
         connection: connection,
       });
 
+      const tokenAddress =
+        token == "USDC" ? token_address.usdc : token_address.sol;
       // checking if user account is initialized or not!
       const [userATA, bump] = PublicKey.findProgramAddressSync(
         [Buffer.from("user"), wallet.publicKey.toBuffer()],
@@ -144,17 +144,59 @@ export default function DepositTab() {
           console.log(`Successfully Initialized User on Chain - ${txSig}`);
         } else {
           newAccoutInfo = AccountInfo;
-          console.log(`User is already initialized on Chain`);
+          console.log(
+            `User  Account is already initialized on Chain`,
+            AccountInfo
+          );
+        }
+        const tokenAddress =
+          token == "USDC" ? token_address.usdc : token_address.sol;
+        // checking is user bank account is intialised or not
+        const [userBankATA, bump] = PublicKey.findProgramAddressSync(
+          [Buffer.from("treasure"), new PublicKey(tokenAddress).toBuffer()],
+          program.programId
+        );
+        const bankInfo = await connection.getAccountInfo(
+          userBankATA,
+          "confirmed"
+        );
+        if (bankInfo == null) {
+          console.log(`Initialzing User Bank Account`);
+
+          const ix = createAssociatedTokenAccountInstruction(
+            wallet.publicKey,
+            userBankATA,
+            wallet.publicKey,
+            new PublicKey(tokenAddress),
+            TOKEN_2022_PROGRAM_ID
+          );
+          const latestBlockHash = await connection.getLatestBlockhash(
+            "confirmed"
+          );
+          const tx = new Transaction({
+            feePayer: wallet.publicKey,
+            blockhash: latestBlockHash.blockhash,
+            lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+          }).add(ix);
+          const txSig = await wallet.sendTransaction(tx, connection);
+          console.log(`Transaction Signature - ${txSig}`);
+          await connection.confirmTransaction(txSig);
+          console.log(`Transaction was sucessfull !`);
+        } else {
+          console.log(bankInfo);
+          console.log(`User Bank Acc is already initialized on chain`);
         }
         console.log(`Deriving user's account token ATA`);
+        // checking is user token account is intialised or not
         const userTokenATA = await getAssociatedTokenAddress(
           token == "USDC"
             ? new PublicKey(token_address.usdc)
             : new PublicKey(token_address.sol),
           wallet.publicKey,
           false,
-          program.programId
+          TOKEN_2022_PROGRAM_ID
         );
+        console.log(userTokenATA.toString(), `Found user token ata`);
         console.log("Creating Instruction to deposit the amount");
         // creating a transacation
         const txInstruction = await program.methods
@@ -163,7 +205,8 @@ export default function DepositTab() {
             signer: wallet.publicKey,
             tokenMintAddress:
               token == "USDC" ? token_address.usdc : token_address.sol,
-            tokenProgram: TOKEN_PROGRAM_ID,
+            tokenProgram: TOKEN_2022_PROGRAM_ID,
+            tokenProgram2022: TOKEN_2022_PROGRAM_ID,
           })
           .instruction();
         const recentBlockHash = await connection.getLatestBlockhash({
@@ -174,7 +217,8 @@ export default function DepositTab() {
           blockhash: recentBlockHash.blockhash,
           lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
         }).add(txInstruction);
-
+        const simulation = await connection.simulateTransaction(transaction);
+        console.log(simulation, `Simulation Message`);
         const signedTx = await wallet.sendTransaction(transaction, connection);
 
         console.log(signedTx, "Tranasaction Hash");

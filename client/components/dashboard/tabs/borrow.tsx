@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TokenSelector, AmountInput, FieldHelp, Feedback } from "./common";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { type Token, parseAmount } from "@/lib/format";
 import { Progress } from "@/components/ui/progress";
@@ -27,6 +27,8 @@ export default function BorrowTab() {
     const pct = Math.min(100, Math.max(0, (borrowed / deposited) * 100));
     return isFinite(pct) ? pct : 0;
   }, [amt, token]);
+
+  useEffect(() => {});
 
   const risk = ratio > 80 ? "High" : ratio > 60 ? "Elevated" : "Low";
 

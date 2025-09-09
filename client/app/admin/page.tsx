@@ -309,13 +309,6 @@ export default function AdminBankInitPage() {
         lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
       }).add(instruction);
 
-      const simResult = await connection.simulateTransaction(tx);
-      console.log("Simulation result:", simResult.value);
-      if (simResult.value.err) {
-        console.error("Simulation failed:", simResult.value.logs);
-        throw new Error("Simulation failed. Check program logs above.");
-      }
-
       const txSig = await wallet.sendTransaction(tx, connection);
       console.log(`Successfully done Tx signature - `, txSig);
       await connection.confirmTransaction(txSig);

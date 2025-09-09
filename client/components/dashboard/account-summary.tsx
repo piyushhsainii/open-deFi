@@ -9,22 +9,26 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-type Data = {
-  netAPY: number; // %
-  liqThreshold: number; // %
+type Bank = {
+  closefactor: number;
+  liqThreshold: number;
+  liqBonus: number;
+  maxLTV: number;
+};
+
+type BankInfo = {
+  solBank: Bank;
+  UsdcBank: Bank;
 };
 
 export function AccountSummary({
   loading,
-  data = {
-    netAPY: 1,
-    liqThreshold: 2,
-  },
+  bankInfo,
 }: {
   loading: boolean;
-  data?: Data;
+  bankInfo?: BankInfo;
 }) {
-  if (loading) {
+  if (loading || !bankInfo) {
     return (
       <Card className="border-black/10">
         <CardContent className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
@@ -42,6 +46,7 @@ export function AccountSummary({
           Account Summary
         </CardTitle>
       </CardHeader>
+
       <CardContent className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
         <TooltipProvider>
           <Tooltip>
@@ -51,15 +56,16 @@ export function AccountSummary({
                 style={{ backgroundColor: "rgba(51,51,51,0.03)" }}
               >
                 <div className="text-xs uppercase" style={{ color: "#999999" }}>
-                  Net APY
+                  SOL Liquidation Threshold
                 </div>
                 <div className="text-2xl font-bold">
-                  {(data?.netAPY ?? 0).toFixed(2)}%
+                  {bankInfo.solBank.liqThreshold.toFixed(0)}%
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              Net APY reflects your overall rate after deposits and borrows.
+              When your SOL collateral ratio exceeds this threshold, positions
+              may be liquidated.
             </TooltipContent>
           </Tooltip>
 
@@ -70,16 +76,16 @@ export function AccountSummary({
                 style={{ backgroundColor: "rgba(51,51,51,0.03)" }}
               >
                 <div className="text-xs uppercase" style={{ color: "#999999" }}>
-                  Liquidation Threshold
+                  USDC Liquidation Threshold
                 </div>
                 <div className="text-2xl font-bold">
-                  {(data?.liqThreshold ?? 0).toFixed(0)}%
+                  {bankInfo.UsdcBank.liqThreshold.toFixed(0)}%
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              When your collateral ratio exceeds this threshold, positions may
-              be liquidated.
+              When your USDC collateral ratio exceeds this threshold, positions
+              may be liquidated.
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

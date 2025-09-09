@@ -16,7 +16,7 @@ pub struct WithDraw<'info> {
     pub  user_token_account:InterfaceAccount<'info,TokenAccount>,
     #[account(
         mut,
-        seeds=[b"user", mint.key().as_ref()],
+        seeds=[b"user", signer.key().as_ref()],
         bump
     )]
     pub user_account:Account<'info,User>,

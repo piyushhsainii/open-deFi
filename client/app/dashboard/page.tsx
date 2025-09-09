@@ -12,127 +12,18 @@ import WithdrawTab from "@/components/dashboard/tabs/withdraw";
 import LiquidateTab from "@/components/dashboard/tabs/liquidate";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { Program } from "@coral-xyz/anchor";
-import { LendingApp } from "../../../target/types/lending_app";
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
-import IDL from "../../../programs/lending-app/src/build/lending_app.json";
-import { SUPPORTED_TOKENS } from "../admin/page";
+import { useDashboardData } from "@/components/hooks/useDashboardData";
 
 export default function DashboardPage() {
-  const [error, seterror] = useState(null);
   const { connected, publicKey, connect, disconnect, connecting } = useWallet();
-  const [UserAccountInfo, setUserAccountInfo] = useState({
-    tokenA: {
-      availableToBorrow: 0,
-      healthFactor: 0,
-      totalBorrowed: 0,
-      totalDeposited: 0,
-    },
-    tokenB: {
-      availableToBorrow: 0,
-      healthFactor: 0,
-      totalBorrowed: 0,
-      totalDeposited: 0,
-    },
-  });
+  const { error, loading, refetch, userAccountInfo, bankInfo } =
+    useDashboardData();
+
   const truncated = publicKey
     ? `${publicKey.toString().slice(0, 6)}...${publicKey.toString().slice(-4)}`
     : "Not connected";
-
-  const getDashboardData = async () => {
-    try {
-      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-      const program: Program<LendingApp> = new Program(IDL, {
-        connection: connection,
-      });
-      const [user] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user"), publicKey?.toBuffer()!],
-        program.programId
-      );
-      const getAccountATA = await program.account.user.fetch(user, "confirmed");
-      // Load in Banks
-      // Sol Bank
-      const [solBankATA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("bank"),
-          new PublicKey(SUPPORTED_TOKENS[1].mint).toBuffer(),
-        ],
-        program.programId
-      );
-      // USDC Bank
-      const [UsdcBankATA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("bank"),
-          new PublicKey(SUPPORTED_TOKENS[0].mint).toBuffer(),
-        ],
-        program.programId
-      );
-
-      const SolBankInfo = await program.account.bank.fetch(
-        new PublicKey(solBankATA),
-        "confirmed"
-      );
-      const USDCBankInfo = await program.account.bank.fetch(
-        new PublicKey(UsdcBankATA),
-        "confirmed"
-      );
-
-      const SolmaxLtv = Math.floor(SolBankInfo.maxLtv / 10000);
-      const USDCmaxLtv = Math.floor(USDCBankInfo.maxLtv / 10000);
-
-      const solAvailableToBorrow = Math.floor(
-        getAccountATA.depositedSol.SolmaxLtv
-      );
-      const liquidationThreshold = Math.floor(
-        SolBankInfo.liquidationThreshold / 10000
-      );
-      const SolhealthFactor = Math.floor(
-        Math.floor(getAccountATA.depositedSol * liquidationThreshold) /
-          getAccountATA.borrowedUsdc
-      );
-
-      const solBank = setUserAccountInfo({
-        tokenA: {
-          //SOL
-          availableToBorrow: solAvailableToBorrow ?? 0,
-          healthFactor: 0,
-          totalBorrowed: getAccountATA.borrowedSol,
-          totalDeposited: getAccountATA.depositedSol,
-        },
-        tokenB: {
-          availableToBorrow: 0,
-          healthFactor: 0,
-          totalBorrowed: getAccountATA.borrowedUsdc,
-          totalDeposited: getAccountATA.depositedUsdc,
-        },
-      });
-    } catch (error) {
-      setUserAccountInfo({
-        tokenA: {
-          //SOL
-          availableToBorrow: 0,
-          healthFactor: 0,
-          totalBorrowed: 0,
-          totalDeposited: 0,
-        },
-        tokenB: {
-          //USDC
-          availableToBorrow: 0,
-          healthFactor: 0,
-          totalBorrowed: 0,
-          totalDeposited: 0,
-        },
-      });
-      console.log(`Something went wrong -`, error);
-    }
-  };
-
-  useEffect(() => {
-    getDashboardData();
-  }, [connected]);
 
   return (
     <main className="min-h-dvh bg-white text-black">
@@ -194,23 +85,23 @@ export default function DashboardPage() {
             loading={false}
             data={{
               tokenA: {
-                availableToBorrow: 0,
-                healthFactor: 0,
-                totalBorrowed: 0,
-                totalDeposited: 0,
+                availableToBorrow: userAccountInfo.tokenA.availableToBorrow,
+                healthFactor: userAccountInfo.tokenA.healthFactor,
+                totalBorrowed: userAccountInfo.tokenA.totalBorrowed,
+                totalDeposited: userAccountInfo.tokenA.totalDeposited,
               },
               tokenB: {
-                availableToBorrow: 0,
-                healthFactor: 0,
-                totalBorrowed: 0,
-                totalDeposited: 0,
+                availableToBorrow: userAccountInfo.tokenB.availableToBorrow,
+                healthFactor: userAccountInfo.tokenB.healthFactor,
+                totalBorrowed: userAccountInfo.tokenB.totalBorrowed,
+                totalDeposited: userAccountInfo.tokenB.totalDeposited,
               },
             }}
           />
         </section>
 
         <section aria-label="Account summary" className="mb-8">
-          <AccountSummary loading={false} />
+          <AccountSummary loading={false} bankInfo={bankInfo} />
         </section>
 
         <section aria-label="Actions" className="mb-16">
@@ -235,7 +126,6 @@ export default function DashboardPage() {
                 Liquidate
               </TabsTrigger>
             </TabsList>
-
             <TabsContent
               value="deposit"
               className="transition-all duration-300 ease-in-out"
