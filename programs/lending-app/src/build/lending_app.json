@@ -1,5 +1,5 @@
 {
-  "address": "CjSdLtLBZ1GXSexsnkZeDRHqwGGPM1XeaaPTtWzCRYmn",
+  "address": "4JrcViCPJUCusvztHXKtVExduCk3daRd6MrJGYgq3qmY",
   "metadata": {
     "name": "lending_app",
     "version": "0.1.0",
@@ -254,7 +254,7 @@
               },
               {
                 "kind": "account",
-                "path": "token_mint_address"
+                "path": "signer"
               }
             ]
           }
@@ -985,7 +985,7 @@
               },
               {
                 "kind": "account",
-                "path": "mint"
+                "path": "signer"
               }
             ]
           }
