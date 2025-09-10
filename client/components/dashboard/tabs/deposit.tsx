@@ -16,6 +16,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   TOKEN_2022_PROGRAM_ID,
+  TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { LendingApp } from "../../../../target/types/lending_app";
 import { BN, Program } from "@coral-xyz/anchor";
@@ -50,9 +51,12 @@ export default function DepositTab({
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const { userAccountInfo } = useDashboardData();
-  const connection = new Connection(clusterApiUrl("devnet"), {
-    commitment: "confirmed",
-  });
+  const connection = new Connection(
+    "https://devnet.helius-rpc.com/?api-key=ff338341-babd-4354-82c0-e8853c64fa66",
+    {
+      commitment: "confirmed",
+    }
+  );
 
   const getorCreateUserAccount = async (
     program: Program<LendingApp>,
@@ -91,38 +95,23 @@ export default function DepositTab({
       toast("Wallet not connected!");
       return;
     }
-
     try {
-      setState("success");
-      setValue("");
       console.log(`Initializing the Deposit Instruction`);
       const program: Program<LendingApp> = new Program(IDL, {
         connection: connection,
       });
 
       try {
-        const tokenMintAdd =
-          token == token_address.usdc ? token_address.usdc : token_address.sol;
-
-        // Deriving the token bank account
+        const tokenMint =
+          token == "USDC" ? token_address.usdc : token_address.sol;
         const [bankTokenAccount, bump] = PublicKey.findProgramAddressSync(
-          [Buffer.from("treasure"), new PublicKey(tokenMintAdd).toBuffer()],
+          [Buffer.from("treasure"), new PublicKey(tokenMint).toBuffer()],
           program.programId
         );
         const [bankAccount] = PublicKey.findProgramAddressSync(
-          [Buffer.from("bank"), new PublicKey(tokenMintAdd).toBuffer()],
+          [Buffer.from("bank"), new PublicKey(tokenMint).toBuffer()],
           program.programId
         );
-        const bankInfo = await connection.getAccountInfo(
-          bankAccount,
-          "confirmed"
-        );
-        console.log(`BANK ACCOUNT`, bankAccount.toString());
-        console.log(`BANK ACCOUNT CHAIN`, JSON.stringify(bankInfo!.toString()));
-        console.log(`BANK TOKEN ACCOUNT`, bankTokenAccount.toString());
-        // console.log(`User Bank Acc is already initialized on chain`);
-        // console.log(`Deriving user's account token ATA`);
-        // checking is user token account is intialised or not
         const userTokenATA = await getAssociatedTokenAddress(
           token == "USDC"
             ? new PublicKey(token_address.usdc)
@@ -143,17 +132,13 @@ export default function DepositTab({
         // creating a transacation
         const txInstruction = await program.methods
           .deposit(new BN(Number(value)))
-          .accountsPartial({
+          .accountsStrict({
             signer: wallet.publicKey,
             tokenMintAddress:
               token == "USDC" ? token_address.usdc : token_address.sol,
-            tokenProgram: new PublicKey(
-              "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-            ),
-            tokenProgram2022: new PublicKey(
-              "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
-            ),
-            // bank: bankAccount,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            tokenProgram2022: TOKEN_2022_PROGRAM_ID,
+            bank: bankAccount,
             tokenBankAcc: bankTokenAccount,
             userLendingProgramAcc: userAccount,
             userTokenAccount: userTokenATA,
@@ -170,21 +155,27 @@ export default function DepositTab({
         }).add(txInstruction);
         const simulation = await connection.simulateTransaction(transaction);
         console.log(simulation, `Simulation Message`);
-        const signedTx = await wallet.sendTransaction(transaction, connection);
+        // const signedTx = await wallet.sendTransaction(transaction, connection);
 
-        console.log(signedTx, "Tranasaction Hash");
+        // console.log(signedTx, "Tranasaction Hash");
 
-        const confirmationTxt = await connection.confirmTransaction(
-          signedTx,
-          "confirmed"
-        );
-        console.log(confirmationTxt, "Transaction Confirmed");
+        // const confirmationTxt = await connection.confirmTransaction(
+        //   signedTx,
+        //   "confirmed"
+        // );
+        setState("success");
+        setValue("");
+        // console.log(confirmationTxt, "Transaction Confirmed");
       } catch (e: any) {
         setState("error");
         setError(e?.message || "Network error");
       }
     } catch {
       console.log("came in catch");
+    } finally {
+      setTimeout(() => {
+        setState("idle");
+      }, 2700);
     }
   };
 
@@ -193,20 +184,26 @@ export default function DepositTab({
 
     if (token == "SOL") {
       const balance = await connection.getBalance(wallet.publicKey);
-      setbalance(balance);
+      const sol_conversion = Math.floor(balance / 1000000000);
+      setbalance(sol_conversion);
     } else {
-      const getUsdcATA = await getAssociatedTokenAddress(
-        new PublicKey(token_address.usdc),
-        wallet.publicKey
+      const userTokenATA = await getAssociatedTokenAddress(
+        token == "USDC"
+          ? new PublicKey(token_address.usdc)
+          : new PublicKey(token_address.sol),
+        wallet.publicKey,
+        false,
+        new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
       );
-      const balance = await connection.getBalance(wallet.publicKey);
-      setbalance(balance);
+      const balance = await connection.getBalance(userTokenATA);
+      const usdc_conversion = Math.floor(balance / 1000000);
+      setbalance(usdc_conversion);
     }
   };
 
   useEffect(() => {
     getMaxBalance();
-  }, [wallet.connected]);
+  }, [wallet.connected, token, value]);
 
   return (
     <Card className="border-black/10">

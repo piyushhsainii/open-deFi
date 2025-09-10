@@ -83,6 +83,12 @@ export default function DashboardPage() {
     userAccountInfo,
   } = useDashboardData();
 
+  console.log(error);
+
+  if (error == "userNA" && alertDialogOpen == false) {
+    setalertDialogOpen(true);
+  }
+
   const initializeUser = async () => {
     if (publicKey == null) {
       setalertDialogOpen(true);
@@ -131,6 +137,7 @@ export default function DashboardPage() {
       setisInitialzing(false);
       toast(`Successfully Initialized User on Chain - ${txSig}`);
       console.log(`Successfully Initialized User on Chain - ${txSig}`);
+      setalertDialogOpen(false);
       setTimeout(() => {
         setisInitialzing(null);
       }, 3000);
@@ -143,6 +150,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (error == "userNA") {
+      setalertDialogOpen(true);
     }
     if (userAccountInfo) {
       setalertDialogOpen(false);
@@ -371,10 +379,19 @@ export default function DashboardPage() {
                   disabled={isInitialzing ?? false}
                 >
                   {" "}
-                  Initialize User {isInitialzing == false && <Check />}
                   {isInitialzing == true && (
-                    <span className="animate-spin w-1 border-white border-l h-1 p-1 rounded-full"></span>
+                    <div className="flex gap-1 items-center">
+                      Initializing User{" "}
+                      <span className="animate-spin w-1 border-white border-l h-1 p-1 rounded-full mx-1 px-1"></span>
+                    </div>
                   )}
+                  {isInitialzing == false && (
+                    <div className="flex gap-1 items-center justify-center">
+                      {" "}
+                      Success! <Check />{" "}
+                    </div>
+                  )}
+                  {isInitialzing == null && <div>Initialize User</div>}
                 </Button>
               </AlertDialogFooter>
             </AlertDialogContent>
