@@ -1,5 +1,5 @@
 {
-  "address": "4JrcViCPJUCusvztHXKtVExduCk3daRd6MrJGYgq3qmY",
+  "address": "EVya6EcURkcprQL6dUL1PUKE6fdW91Jn5vp7h8yih21C",
   "metadata": {
     "name": "lending_app",
     "version": "0.1.0",
@@ -534,7 +534,28 @@
         },
         {
           "name": "collateral_token_bank",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ]
+          }
         },
         {
           "name": "user_collateral_token_account",

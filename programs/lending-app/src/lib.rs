@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("4JrcViCPJUCusvztHXKtVExduCk3daRd6MrJGYgq3qmY");
+declare_id!("EVya6EcURkcprQL6dUL1PUKE6fdW91Jn5vp7h8yih21C");
 
 #[program]
 pub mod lending_app {
