@@ -21,9 +21,10 @@ pub struct Liquidate<'info> {
     pub collateral_bank:Account<'info,Bank>,
     #[account(
         mut,
-          token::mint=collateral_mint,
+        token::mint=collateral_mint,
         token::authority=collateral_bank,
-
+        seeds=[b"treasure",collateral_mint.key().as_ref()],
+        bump
     )]
     pub collateral_token_bank:InterfaceAccount<'info,TokenAccount>,
     #[account(

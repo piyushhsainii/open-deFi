@@ -6,7 +6,7 @@ import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import IDL from "../../../programs/lending-app/src/build/lending_app.json";
 import { SUPPORTED_TOKENS } from "@/app/admin/page";
 
-interface UserAccountInfo {
+interface bankBalances {
   tokenA: {
     availableToBorrow: number;
     healthFactor: number;
@@ -19,6 +19,19 @@ interface UserAccountInfo {
     totalBorrowed: number;
     totalDeposited: number;
   };
+}
+
+interface UserAccInfo {
+  depositedSol: number;
+  depositedSolShares: number;
+  borrowedSol: number;
+  borrowedSolShares: number;
+  depositedUsdc: number;
+  depositedUsdcShares: number;
+  borrowedUsdc: number;
+  borrowedUsdcShares: number;
+  mintAddress: PublicKey;
+  healthFactor: number;
 }
 
 export const useDashboardData = () => {
@@ -50,7 +63,11 @@ export const useDashboardData = () => {
       maxLTV: 0,
     },
   });
-  const [userAccountInfo, setUserAccountInfo] = useState<UserAccountInfo>({
+
+  const [userAccountInfo, setuserAccountInfo] = useState<UserAccInfo | null>(
+    null
+  );
+  const [bankBalances, setBankBalances] = useState<bankBalances>({
     tokenA: {
       availableToBorrow: 0,
       healthFactor: 0,
@@ -69,7 +86,7 @@ export const useDashboardData = () => {
 
   const fetchDashboardData = async () => {
     if (!connected || !publicKey) {
-      setUserAccountInfo({
+      setBankBalances({
         tokenA: {
           availableToBorrow: 0,
           healthFactor: 0,
@@ -99,10 +116,25 @@ export const useDashboardData = () => {
         [Buffer.from("user"), publicKey.toBuffer()],
         program.programId
       );
+      let getAccountATA;
+      try {
+        const getAccATA = await program.account.user.fetch(user, "confirmed");
+        setuserAccountInfo({
+          borrowedSol: getAccATA.borrowedSol.toNumber(),
+          borrowedSolShares: getAccATA.borrowedSolShares.toNumber(),
+          borrowedUsdc: getAccATA.borrowedUsdc.toNumber(),
+          borrowedUsdcShares: getAccATA.borrowedUsdcShares.toNumber(),
+          depositedSol: getAccATA.depositedSol.toNumber(),
+          depositedSolShares: getAccATA.depositedSolShares.toNumber(),
+          depositedUsdc: getAccATA.depositedUsdc.toNumber(),
+          depositedUsdcShares: getAccATA.depositedUsdcShares.toNumber(),
+          healthFactor: getAccATA.healthFactor.toNumber(),
+          mintAddress: getAccATA.mintAddress,
+        });
+      } catch (error) {
+        return setError("userNA");
+      }
 
-      const getAccountATA = await program.account.user.fetch(user, "confirmed");
-
-      // Load in Banks
       // Sol Bank
       const [solBankATA] = PublicKey.findProgramAddressSync(
         [
@@ -149,50 +181,56 @@ export const useDashboardData = () => {
         solBank,
         UsdcBank,
       });
+
+      if (userAccountInfo == null) {
+        setError("userNa");
+        return;
+      }
+
       const solAvailableToBorrow = Math.floor(
-        getAccountATA.depositedSol * solMaxLtv
+        userAccountInfo.depositedSol * solMaxLtv
       );
       const liquidationThreshold = Math.floor(
         solBankInfo.liquidationThreshold / 10000
       );
       const solHealthFactor =
-        getAccountATA.borrowedUsdc > 0
+        userAccountInfo.borrowedUsdc > 0
           ? Math.floor(
-              Math.floor(getAccountATA.depositedSol * liquidationThreshold) /
-                getAccountATA.borrowedUsdc
+              Math.floor(userAccountInfo.depositedSol * liquidationThreshold) /
+                userAccountInfo.borrowedUsdc
             )
           : 0;
 
       // Calculate USDC available to borrow and health factor
       const usdcAvailableToBorrow = Math.floor(
-        getAccountATA.depositedUsdc * usdcMaxLtv
+        userAccountInfo.depositedUsdc * usdcMaxLtv
       );
       const usdcLiquidationThreshold = Math.floor(
         usdcBankInfo.liquidationThreshold / 10000
       );
       const usdcHealthFactor =
-        getAccountATA.borrowedSol > 0
+        userAccountInfo.borrowedSol > 0
           ? Math.floor(
               Math.floor(
-                getAccountATA.depositedUsdc * usdcLiquidationThreshold
-              ) / getAccountATA.borrowedSol
+                userAccountInfo.depositedUsdc * usdcLiquidationThreshold
+              ) / userAccountInfo.borrowedSol
             )
           : 0;
 
-      setUserAccountInfo({
+      setBankBalances({
         tokenA: {
           // SOL
           availableToBorrow: solAvailableToBorrow ?? 0,
           healthFactor: solHealthFactor,
-          totalBorrowed: getAccountATA.borrowedSol,
-          totalDeposited: getAccountATA.depositedSol,
+          totalBorrowed: userAccountInfo.borrowedSol,
+          totalDeposited: userAccountInfo.depositedSol,
         },
         tokenB: {
           // USDC
           availableToBorrow: usdcAvailableToBorrow ?? 0,
           healthFactor: usdcHealthFactor,
-          totalBorrowed: getAccountATA.borrowedUsdc,
-          totalDeposited: getAccountATA.depositedUsdc,
+          totalBorrowed: userAccountInfo.borrowedUsdc,
+          totalDeposited: userAccountInfo.depositedUsdc,
         },
       });
     } catch (err) {
@@ -200,7 +238,7 @@ export const useDashboardData = () => {
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
       );
-      setUserAccountInfo({
+      setBankBalances({
         tokenA: {
           availableToBorrow: 0,
           healthFactor: 0,
@@ -224,10 +262,12 @@ export const useDashboardData = () => {
   }, [connected, publicKey]);
 
   return {
-    userAccountInfo,
+    bankBalances,
     bankInfo,
     loading,
     error,
     refetch: fetchDashboardData,
+    userAccountInfo,
+    setuserAccountInfo,
   };
 };

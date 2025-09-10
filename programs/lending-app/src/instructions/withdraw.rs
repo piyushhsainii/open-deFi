@@ -11,7 +11,7 @@ pub struct WithDraw<'info> {
         mut,
         associated_token::mint=mint,
         associated_token::authority=signer,
-        associated_token::token_program=token_program
+        associated_token::token_program=token_program,
     )]
     pub  user_token_account:InterfaceAccount<'info,TokenAccount>,
     #[account(
@@ -29,6 +29,8 @@ pub struct WithDraw<'info> {
     #[account(
         mut,
         seeds=[b"treasure",mint.key().as_ref()],
+        token::mint=mint,
+        token::authority=bank,
         bump
     )]
     pub  bank_token_account:InterfaceAccount<'info,TokenAccount>,

@@ -118,6 +118,7 @@ export default function AdminBankInitPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [ackIrreversible, setAckIrreversible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [LiquidationThreshold, setLiquidationThreshold] = useState(0);
 
   const isAdmin =
     wallet.connected && wallet.publicKey
@@ -218,19 +219,20 @@ export default function AdminBankInitPage() {
       if (bankAccount) {
         console.log(`Bank already initialized:`, bankAccount);
         setTotalDeposits({
-          totalDeposited: bankAccount.totalDeposits,
-          totalDepositedShares: bankAccount.totalDepositShares,
+          totalDeposited: bankAccount.totalDeposits.toNumber(),
+          totalDepositedShares: bankAccount.totalDepositShares.toNumber(),
         });
         setTotalBorrowed({
-          totalBorrowed: bankAccount.totalBorrowed,
-          totalBorrowedShares: bankAccount.totalBorrowedShares,
+          totalBorrowed: bankAccount.totalBorrowed.toNumber(),
+          totalBorrowedShares: bankAccount.totalBorrowedShares.toNumber(),
         });
-        setlastUpdated(bankAccount.lastUpdated);
+        setlastUpdated(bankAccount.lastUpdated.toNumber());
         setAuthority(bankAccount.authority.toString());
-        setLiquidationBonus(bankAccount.liquidationBonus);
-        setCloseFactor(bankAccount.closeFactor);
-        setMaxLtv(bankAccount.maxLtv);
-        setInterestRate(bankAccount.interestRate);
+        setLiquidationBonus(bankAccount.liquidationBonus.toNumber());
+        setLiquidationThreshold(bankAccount.liquidationThreshold.toNumber());
+        setCloseFactor(bankAccount.closeFactor.toNumber());
+        setMaxLtv(bankAccount.maxLtv.toNumber());
+        setInterestRate(bankAccount.interestRate.toNumber());
         setIsBankInitialized(true);
       } else {
         setIsBankInitialized(false);
@@ -504,7 +506,7 @@ export default function AdminBankInitPage() {
 
               <div className="grid gap-2">
                 <Label>Liquidation Threshold</Label>
-                <Input readOnly value="10000 (100%)" />
+                <Input readOnly value={LiquidationThreshold} />
                 <p className="text-muted-foreground text-xs">
                   Fixed value. Max LTV must be less than this threshold.
                 </p>
@@ -521,6 +523,7 @@ export default function AdminBankInitPage() {
                   min={0}
                   max={10000}
                   value={liquidationBonus}
+                  readOnly={isBankInitialized}
                   onChange={(e) =>
                     setLiquidationBonus(parseInt(e.target.value) || 0)
                   }
@@ -544,6 +547,7 @@ export default function AdminBankInitPage() {
                   min={0}
                   max={10000}
                   value={closeFactor}
+                  readOnly={isBankInitialized}
                   onChange={(e) =>
                     setCloseFactor(parseInt(e.target.value) || 0)
                   }
@@ -567,6 +571,7 @@ export default function AdminBankInitPage() {
                   min={0}
                   max={9999}
                   value={maxLtv}
+                  readOnly={isBankInitialized}
                   onChange={(e) => setMaxLtv(parseInt(e.target.value) || 0)}
                 />
                 {errors.maxLtv && (
@@ -588,6 +593,7 @@ export default function AdminBankInitPage() {
                   min={0}
                   max={2000}
                   value={interestRate}
+                  readOnly={isBankInitialized}
                   onChange={(e) =>
                     setInterestRate(parseInt(e.target.value) || 0)
                   }

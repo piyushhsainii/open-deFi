@@ -16,6 +16,8 @@ pub struct Deposit<'info> {
     #[account(
         mut,
         seeds=[b"treasure",token_mint_address.key().as_ref()],
+        token::mint=token_mint_address,
+        token::authority=bank,
         bump
     )]
     pub token_bank_acc:InterfaceAccount<'info,TokenAccount>,

@@ -16,6 +16,8 @@ pub struct Repay<'info> {
     #[account(
         mut,
         seeds=[b"treasure",repay_mint.key().as_ref()],
+        token::mint=repay_mint,
+        token::authority=bank,
         bump
     )]
     pub bank_token_account:InterfaceAccount<'info,TokenAccount>,

@@ -33,6 +33,8 @@ pub struct Borrow<'info>{
     #[account(
         mut,
         seeds=[b"treasure",mint.key().as_ref()],
+        token::mint=mint,
+        token::authority=bank,
         bump
     )]
     pub token_bank_acc:InterfaceAccount<'info, TokenAccount>,
