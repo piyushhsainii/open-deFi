@@ -4,6 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
+import {
+  bankBalances,
+  useDashboardData,
+  UserAccInfo,
+} from "../hooks/useDashboardData";
 
 type TokenData = {
   totalDeposited: number;
@@ -19,23 +24,12 @@ type Data = {
 
 export function PortfolioCards({
   loading,
-  data = {
-    tokenA: {
-      totalDeposited: 1250.5,
-      totalBorrowed: 800.25,
-      availableToBorrow: 450.75,
-      healthFactor: 85,
-    },
-    tokenB: {
-      totalDeposited: 2100.8,
-      totalBorrowed: 1200.4,
-      availableToBorrow: 900.4,
-      healthFactor: 72,
-    },
-  },
+  bankInfo,
+  userAccountInfo,
 }: {
   loading: boolean;
-  data?: Data;
+  bankInfo: Data;
+  userAccountInfo: UserAccInfo;
 }) {
   const [selectedToken, setSelectedToken] = useState<"tokenA" | "tokenB">(
     "tokenA"
@@ -62,30 +56,38 @@ export function PortfolioCards({
     );
   }
 
-  const currentData = data[selectedToken];
+  const currentData = bankInfo[selectedToken];
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title="Total Deposited"
-        value={formatUSD(currentData?.totalDeposited ?? 0)}
+        value={formatUSD(
+          selectedToken == "tokenA"
+            ? userAccountInfo.depositedSol
+            : userAccountInfo.depositedUsdc
+        )}
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
       <MetricCard
         title="Total Borrowed"
-        value={formatUSD(currentData?.totalBorrowed ?? 0)}
+        value={formatUSD(
+          selectedToken == "tokenA"
+            ? userAccountInfo.borrowedSol
+            : userAccountInfo.borrowedUsdc
+        )}
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
       <MetricCard
         title="Available to Borrow"
-        value={formatUSD(currentData?.availableToBorrow ?? 0)}
+        value={formatUSD(currentData.availableToBorrow)}
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
       <HealthCard
-        value={currentData?.healthFactor ?? 0}
+        value={currentData.healthFactor}
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
@@ -133,7 +135,7 @@ function MetricCard({
   onTokenSwitch,
 }: {
   title: string;
-  value: string;
+  value: number;
   selectedToken: "tokenA" | "tokenB";
   onTokenSwitch: (token: "tokenA" | "tokenB") => void;
 }) {
@@ -155,7 +157,7 @@ function MetricCard({
           key={`${title}-${selectedToken}`}
           className="text-xl font-semibold animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
         >
-          {value}
+          {value.toString()}
         </div>
       </CardContent>
     </Card>
@@ -202,9 +204,6 @@ function HealthCard({
 }
 
 function formatUSD(n: number) {
-  return Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(n);
+  const formatted_value = n / 1000000000;
+  return formatted_value;
 }

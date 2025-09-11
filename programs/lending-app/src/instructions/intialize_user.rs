@@ -32,7 +32,7 @@ pub fn process_init_user(ctx:Context<InitializeUser>)-> Result<()> {
         deposited_usdc:0,
         deposited_usdc_shares:0,
         health_factor:0,
-        mint_address:user.mint_address
+        mint_address:ctx.accounts.mint_address.key()
     });
     Ok(())
 }

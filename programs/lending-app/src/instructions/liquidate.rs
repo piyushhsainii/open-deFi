@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{transfer_checked, TransferChecked};
+use anchor_spl::token_2022::{transfer_checked, TransferChecked};
 use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use pyth_solana_receiver_sdk::price_update::{self, get_feed_id_from_hex, PriceUpdateV2};
 
@@ -18,11 +18,12 @@ pub struct Liquidate<'info> {
         seeds=[b"bank",collateral_mint.key().as_ref()],
         bump
     )]
-    pub collateral_bank:Account<'info,Bank>,
+    pub collateral_bank:Box<Account<'info,Bank>>,
     #[account(
         mut,
         token::mint=collateral_mint,
         token::authority=collateral_bank,
+        token::token_program = token_program, 
         seeds=[b"treasure",collateral_mint.key().as_ref()],
         bump
     )]
@@ -32,7 +33,7 @@ pub struct Liquidate<'info> {
         seeds=[b"user",signer.key().as_ref()],
         bump
     )]
-    pub user_collateral_token_account:Account<'info,User>,
+    pub user_collateral_token_account:Box<Account<'info,User>>,
      #[account(
         mut,
         seeds=[b"bank",borrowed_mint.key().as_ref()],
@@ -43,6 +44,7 @@ pub struct Liquidate<'info> {
         mut,
         token::mint=borrowed_mint,
         token::authority=borrowed_bank,
+        token::token_program = token_program, 
     )]
     pub borrowed_token_bank:InterfaceAccount<'info,TokenAccount>,
        #[account(
@@ -50,7 +52,7 @@ pub struct Liquidate<'info> {
         seeds=[b"user",signer.key().as_ref()],
         bump
     )]
-    pub user_borrowed_token_account:Account<'info,User>,
+    pub user_borrowed_token_account:Box<Account<'info,User>>,
     #[account(
         mut,
         associated_token::mint=borrowed_mint,
@@ -66,14 +68,13 @@ pub struct Liquidate<'info> {
         associated_token::token_program = token_program,
     )]
     pub liquidator_colleteral_token_account:InterfaceAccount<'info,TokenAccount>,
-    pub price_update:Account<'info,PriceUpdateV2>,
+    pub price_update:Box<Account<'info,PriceUpdateV2>>,
     pub token_program:Interface<'info,TokenInterface>,
     pub system_program:Program<'info,System>,
-     pub associated_token_program: Program<'info, AssociatedToken>, 
+    pub associated_token_program: Program<'info, AssociatedToken>, 
 }
 
 
-// 
 
 pub fn process_liquidate(ctx:Context<Liquidate>)-> Result<()> {
 

@@ -50,7 +50,7 @@ export default function DepositTab({
   );
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
-  const { userAccountInfo } = useDashboardData();
+  const { userAccountInfo, refetch } = useDashboardData();
   const connection = new Connection(
     "https://devnet.helius-rpc.com/?api-key=ff338341-babd-4354-82c0-e8853c64fa66",
     {
@@ -58,30 +58,20 @@ export default function DepositTab({
     }
   );
 
-  const getorCreateUserAccount = async (
-    program: Program<LendingApp>,
-    userATA: PublicKey
-  ) => {
-    try {
-      const userAccount = await program.account.user.fetch(userATA.toString());
-      return userAccount;
-    } catch (error) {
-      console.log(`Error occured while fetching user ATA ${error}`);
-      return null;
-    }
-  };
-
   const onDeposit = async (connection: Connection) => {
     setState("loading");
     setError(undefined);
     setHash(undefined);
-    const amt = parseAmount(value, token);
+    const decimals = 9;
+    const transferAmount = Math.floor(Number(value) * 10 ** decimals);
+    console.log(transferAmount);
+    const amt = transferAmount;
     if (amt <= 0) {
       setState("error");
       setError("Enter a valid amount");
       return;
     }
-    if (amt > balance) {
+    if (Number(value) > balance) {
       setState("error");
       setError("Insufficient balance");
       return;
@@ -120,18 +110,15 @@ export default function DepositTab({
           false,
           new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
         );
+        console.log(userTokenATA.toString(), "user ata");
         // Deriving the token bank account
         const [userAccount] = PublicKey.findProgramAddressSync(
           [Buffer.from("user"), new PublicKey(wallet.publicKey).toBuffer()],
           program.programId
         );
-        console.log(`USER ACCOUNT`, userAccount.toString());
-        console.log(`USER TOKEN ACCOUNT`, userTokenATA.toString());
 
-        // console.log("Creating Instruction to deposit the amount");
-        // creating a transacation
         const txInstruction = await program.methods
-          .deposit(new BN(Number(value)))
+          .deposit(new BN(Number(transferAmount)))
           .accountsStrict({
             signer: wallet.publicKey,
             tokenMintAddress:
@@ -153,19 +140,17 @@ export default function DepositTab({
           blockhash: recentBlockHash.blockhash,
           lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
         }).add(txInstruction);
-        const simulation = await connection.simulateTransaction(transaction);
-        console.log(simulation, `Simulation Message`);
-        // const signedTx = await wallet.sendTransaction(transaction, connection);
+        const signedTx = await wallet.sendTransaction(transaction, connection);
+        console.log(signedTx, "Tranasaction Hash");
 
-        // console.log(signedTx, "Tranasaction Hash");
-
-        // const confirmationTxt = await connection.confirmTransaction(
-        //   signedTx,
-        //   "confirmed"
-        // );
+        const confirmationTxt = await connection.confirmTransaction(
+          signedTx,
+          "confirmed"
+        );
+        await refetch();
         setState("success");
         setValue("");
-        // console.log(confirmationTxt, "Transaction Confirmed");
+        console.log(confirmationTxt, "Transaction Confirmed");
       } catch (e: any) {
         setState("error");
         setError(e?.message || "Network error");
@@ -178,32 +163,25 @@ export default function DepositTab({
       }, 2700);
     }
   };
-
   const getMaxBalance = async () => {
     if (!wallet || !wallet.publicKey) return;
 
-    if (token == "SOL") {
-      const balance = await connection.getBalance(wallet.publicKey);
-      const sol_conversion = Math.floor(balance / 1000000000);
-      setbalance(sol_conversion);
-    } else {
-      const userTokenATA = await getAssociatedTokenAddress(
-        token == "USDC"
-          ? new PublicKey(token_address.usdc)
-          : new PublicKey(token_address.sol),
-        wallet.publicKey,
-        false,
-        new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
-      );
-      const balance = await connection.getBalance(userTokenATA);
-      const usdc_conversion = Math.floor(balance / 1000000);
-      setbalance(usdc_conversion);
-    }
+    const userTokenATA = await getAssociatedTokenAddress(
+      token == "USDC"
+        ? new PublicKey(token_address.usdc)
+        : new PublicKey(token_address.sol),
+      wallet.publicKey,
+      false,
+      new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb")
+    );
+    const balanceInfo = await connection.getTokenAccountBalance(userTokenATA);
+    const uiAmount = balanceInfo.value.uiAmount || 0;
+    setbalance(uiAmount);
   };
 
   useEffect(() => {
     getMaxBalance();
-  }, [wallet.connected, token, value]);
+  }, [wallet.connected, token]);
 
   return (
     <Card className="border-black/10">

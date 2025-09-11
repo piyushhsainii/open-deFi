@@ -1,5 +1,5 @@
 use anchor_lang::{prelude::*};
-use anchor_spl::{token::{transfer_checked, TransferChecked}, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{ token_2022::{transfer_checked,TransferChecked} , token_interface::{Mint, TokenAccount, TokenInterface}};
 
 use crate::{Bank, User};
 
@@ -18,6 +18,7 @@ pub struct Deposit<'info> {
         seeds=[b"treasure",token_mint_address.key().as_ref()],
         token::mint=token_mint_address,
         token::authority=bank,
+        token::token_program = token_program_2022, 
         bump
     )]
     pub token_bank_acc:InterfaceAccount<'info,TokenAccount>,
@@ -52,22 +53,18 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
     });
     transfer_checked(ix, amount, account.token_mint_address.decimals)?;
 
-    // Handling the initial bank transfer
-    // 
-    if account.bank.total_deposits == 0{
-        // setting bank's state
-        account.bank.total_deposits = amount;
-        account.bank.total_deposit_shares = amount;
+  let users_deposit_shares = if account.bank.total_deposits == 0 {
+        // First deposit in the bank - user gets 1:1 shares 
+        amount
     } else {
+        // Calculate proportional shares: (amount * existing_shares) / existing_deposits
+        amount
+            .checked_mul(account.bank.total_deposit_shares)
+            .unwrap()
+            .checked_div(account.bank.total_deposits)
+            .unwrap()
+    };
 
-    // handle deposit ratio -- amount / total deposits --> Shows the ratio of the user's amount respective to vault
-    let users_deposit_shares = amount
-        .checked_mul(account.bank.total_deposit_shares)
-        .unwrap()
-        .checked_div(account.bank.total_deposits)
-        .unwrap();
-
-    // Handling deposit ratio
     match account.token_mint_address.to_account_info().key() {
         key if key == account.user_lending_program_acc.mint_address.key() =>{
             account.user_lending_program_acc.deposited_usdc = account.user_lending_program_acc.deposited_usdc.checked_add(amount).unwrap();
@@ -81,6 +78,5 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
     // Handling total deposit shares
         account.bank.total_deposits = account.bank.total_deposits.checked_add(amount).unwrap();
         account.bank.total_deposit_shares = account.bank.total_deposit_shares.checked_add(users_deposit_shares).unwrap();
-       }
     Ok(())
 }

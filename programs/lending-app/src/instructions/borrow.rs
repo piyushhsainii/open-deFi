@@ -1,6 +1,6 @@
 
 use anchor_lang::prelude::*;
-use anchor_spl::{ associated_token::AssociatedToken, token::{transfer_checked, TransferChecked}, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{ associated_token::AssociatedToken, token_2022::{transfer_checked,TransferChecked}, token_interface::{Mint, TokenAccount, TokenInterface}};
 use pyth_solana_receiver_sdk::price_update::{ get_feed_id_from_hex, FeedId, PriceUpdateV2};
 
 use crate::{accrued_interest, normalize_pyth_price, Bank, User, MAX_AGE, SOL_USD_FEED_ID, USDC_USD_FEED_ID};
@@ -35,6 +35,7 @@ pub struct Borrow<'info>{
         seeds=[b"treasure",mint.key().as_ref()],
         token::mint=mint,
         token::authority=bank,
+        token::token_program = token_program, 
         bump
     )]
     pub token_bank_acc:InterfaceAccount<'info, TokenAccount>,

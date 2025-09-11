@@ -15,7 +15,7 @@ export default function Page() {
             className="flex items-center gap-2 font-semibold tracking-tight"
           >
             <span className="sr-only">Solana Lending Protocol</span>
-            <span>SolendX</span>
+            <span>Sol Defi</span>
           </a>
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <a href="#features" className="hover:opacity-80 transition-opacity">

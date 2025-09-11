@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/lending_app.json`.
  */
 export type LendingApp = {
-  "address": "EVya6EcURkcprQL6dUL1PUKE6fdW91Jn5vp7h8yih21C",
+  "address": "4aWe37Q3zNvTAHw2ctkGgwHCZTbSSgpEcqvph4ve7ctg",
   "metadata": {
     "name": "lendingApp",
     "version": "0.1.0",

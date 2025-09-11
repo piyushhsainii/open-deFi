@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{transfer_checked,TransferChecked}, token_interface::*};
+use anchor_spl::{token_2022::{transfer_checked,TransferChecked}, token_interface::*};
 
 use crate::{error::ErrorCode, Bank, User};
 
@@ -31,6 +31,7 @@ pub struct WithDraw<'info> {
         seeds=[b"treasure",mint.key().as_ref()],
         token::mint=mint,
         token::authority=bank,
+        token::token_program = token_program, 
         bump
     )]
     pub  bank_token_account:InterfaceAccount<'info,TokenAccount>,

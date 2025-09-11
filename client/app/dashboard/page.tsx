@@ -83,7 +83,7 @@ export default function DashboardPage() {
     userAccountInfo,
   } = useDashboardData();
 
-  console.log(error);
+  console.log(bankInfo);
 
   if (error == "userNA" && alertDialogOpen == false) {
     setalertDialogOpen(true);
@@ -113,7 +113,7 @@ export default function DashboardPage() {
       const instruction = await program.methods
         .initUser()
         .accounts({
-          mintAddress: token == "USDC" ? token_address.usdc : token_address.sol,
+          mintAddress: token_address.usdc,
           tokenProgram: TOKEN_2022_PROGRAM_ID,
           signer: publicKey,
         })
@@ -137,6 +137,7 @@ export default function DashboardPage() {
       setisInitialzing(false);
       toast(`Successfully Initialized User on Chain - ${txSig}`);
       console.log(`Successfully Initialized User on Chain - ${txSig}`);
+      window.location.reload();
       setalertDialogOpen(false);
       setTimeout(() => {
         setisInitialzing(null);
@@ -149,13 +150,15 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (error == "userNA") {
+    if (error == "userNA" && userAccountInfo == null) {
       setalertDialogOpen(true);
     }
     if (userAccountInfo) {
+      console.log(`deposited usdc`, userAccountInfo.depositedUsdc);
+      console.log(`deposited sol`, userAccountInfo.depositedSol);
       setalertDialogOpen(false);
     }
-  }, []);
+  }, [userAccountInfo, alertDialogOpen]);
 
   const truncated = publicKey
     ? `${publicKey.toString().slice(0, 6)}...${publicKey.toString().slice(-4)}`
@@ -224,25 +227,28 @@ export default function DashboardPage() {
           <WalletConnectionMessage connecting={connecting} />
         ) : (
           <>
-            <section aria-label="Portfolio overview" className="mb-6">
-              <PortfolioCards
-                loading={false}
-                data={{
-                  tokenA: {
-                    availableToBorrow: bankBalances.tokenA.availableToBorrow,
-                    healthFactor: bankBalances.tokenA.healthFactor,
-                    totalBorrowed: bankBalances.tokenA.totalBorrowed,
-                    totalDeposited: bankBalances.tokenA.totalDeposited,
-                  },
-                  tokenB: {
-                    availableToBorrow: bankBalances.tokenB.availableToBorrow,
-                    healthFactor: bankBalances.tokenB.healthFactor,
-                    totalBorrowed: bankBalances.tokenB.totalBorrowed,
-                    totalDeposited: bankBalances.tokenB.totalDeposited,
-                  },
-                }}
-              />
-            </section>
+            {userAccountInfo && (
+              <section aria-label="Portfolio overview" className="mb-6">
+                <PortfolioCards
+                  loading={false}
+                  userAccountInfo={userAccountInfo}
+                  bankInfo={{
+                    tokenA: {
+                      availableToBorrow: bankBalances.tokenA.availableToBorrow,
+                      healthFactor: bankBalances.tokenA.healthFactor,
+                      totalBorrowed: bankBalances.tokenA.totalBorrowed,
+                      totalDeposited: bankBalances.tokenA.totalDeposited,
+                    },
+                    tokenB: {
+                      availableToBorrow: bankBalances.tokenB.availableToBorrow,
+                      healthFactor: bankBalances.tokenB.healthFactor,
+                      totalBorrowed: bankBalances.tokenB.totalBorrowed,
+                      totalDeposited: bankBalances.tokenB.totalDeposited,
+                    },
+                  }}
+                />
+              </section>
+            )}
 
             <section aria-label="Account summary" className="mb-8">
               <AccountSummary loading={false} bankInfo={bankInfo} />

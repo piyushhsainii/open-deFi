@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token::{transfer_checked, TransferChecked}, token_interface::{Mint, TokenAccount, TokenInterface}};
+use anchor_spl::{token_2022::{transfer_checked, TransferChecked}, token_interface::{Mint, TokenAccount, TokenInterface}};
 
 use crate::{accrued_interest, Bank, User};
 
@@ -18,6 +18,7 @@ pub struct Repay<'info> {
         seeds=[b"treasure",repay_mint.key().as_ref()],
         token::mint=repay_mint,
         token::authority=bank,
+        token::token_program = token_program, 
         bump
     )]
     pub bank_token_account:InterfaceAccount<'info,TokenAccount>,
