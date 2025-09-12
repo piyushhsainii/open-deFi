@@ -30,7 +30,7 @@ pub struct WithDraw<'info> {
         mut,
         seeds=[b"treasure",mint.key().as_ref()],
         token::mint=mint,
-        token::authority=bank,
+        token::authority=bank_token_account,
         token::token_program = token_program, 
         bump
     )]
@@ -50,9 +50,10 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
     let user_account = &mut ctx.accounts.user_account;
     let bank_account = &mut ctx.accounts.bank;
     let mint_key = ctx.accounts.mint.key();
+    let stored_amount = amount.checked_div(1000000000).unwrap();
 
     // ✅ VALIDATION 1: Check if bank has sufficient funds
-    if amount > bank_account.total_deposits {
+    if stored_amount > bank_account.total_deposits {
         return Err(ErrorCode::InsufficientBankFunds.into());
     }
 
@@ -81,17 +82,17 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
         .ok_or(ErrorCode::MathError)? as u64;
 
     // ✅ VALIDATION 6: Ensure withdrawal amount doesn't exceed user's entitlement
-    if amount > max_withdrawable {
+    if stored_amount > max_withdrawable {
         return Err(ErrorCode::ExceedsMaxWithdrawal.into());
     }
 
     // ✅ VALIDATION 7: Check minimum withdrawal amount (optional, adjust as needed)
-    if amount == 0 {
+    if stored_amount == 0 {
         return Err(ErrorCode::InvalidWithdrawalAmount.into());
     }
 
     // Calculate proportional shares to remove
-    let shares_to_remove = (amount as u128)
+    let shares_to_remove = (stored_amount as u128)
         .checked_mul(bank_account.total_deposit_shares as u128)
         .ok_or(ErrorCode::MathError)?
         .checked_div(bank_account.total_deposits as u128)
@@ -109,7 +110,7 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
         (user_account.deposited_sol, user_account.deposited_sol_shares)
     };
 
-    if amount > user_current_amount {
+    if stored_amount > user_current_amount {
         return Err(ErrorCode::InsufficientUserBalance.into());
     }
 
@@ -139,7 +140,7 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
     // Update Bank totals
     bank_account.total_deposits = bank_account
         .total_deposits
-        .checked_sub(amount)
+        .checked_sub(stored_amount)
         .ok_or(ErrorCode::MathError)?;
     bank_account.total_deposit_shares = bank_account
         .total_deposit_shares
@@ -151,7 +152,7 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
         // Updating USDC Balances
         user_account.deposited_usdc = user_account
             .deposited_usdc
-            .checked_sub(amount)
+            .checked_sub(stored_amount)
             .ok_or(ErrorCode::MathError)?;
         user_account.deposited_usdc_shares = user_account
             .deposited_usdc_shares
@@ -161,7 +162,7 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
         // Updating SOL Balances
         user_account.deposited_sol = user_account
             .deposited_sol
-            .checked_sub(amount)
+            .checked_sub(stored_amount)
             .ok_or(ErrorCode::MathError)?;
         user_account.deposited_sol_shares = user_account
             .deposited_sol_shares
@@ -173,33 +174,10 @@ pub fn process_withdraw(ctx: Context<WithDraw>, amount: u64) -> Result<()> {
     msg!(
         "Withdrawal completed: User: {}, Amount: {}, Shares removed: {}, Max withdrawable was: {}",
         ctx.accounts.signer.key(),
-        amount,
+        stored_amount,
         shares_to_remove,
         max_withdrawable
     );
 
     Ok(())
 }
-
-// ✅ ADD THESE ERROR CODES TO YOUR ERROR ENUM:
-/*
-#[error_code]
-pub enum ErrorCode {
-    #[msg("Math operation failed")]
-    MathError,
-    #[msg("Insufficient funds in bank")]
-    InsufficientBankFunds,
-    #[msg("Invalid bank state - no shares exist")]
-    InvalidBankState,
-    #[msg("No deposits found for this user")]
-    NoDepositsFound,
-    #[msg("Withdrawal amount exceeds maximum withdrawable")]
-    ExceedsMaxWithdrawal,
-    #[msg("Invalid withdrawal amount")]
-    InvalidWithdrawalAmount,
-    #[msg("Insufficient shares for withdrawal")]
-    InsufficientShares,
-    #[msg("Insufficient user balance")]
-    InsufficientUserBalance,
-}
-*/

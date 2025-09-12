@@ -34,7 +34,8 @@ export function PortfolioCards({
   const [selectedToken, setSelectedToken] = useState<"tokenA" | "tokenB">(
     "tokenA"
   );
-
+  // token a = sol
+  // token b = usdc
   if (loading) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -82,7 +83,7 @@ export function PortfolioCards({
       />
       <MetricCard
         title="Available to Borrow"
-        value={formatUSD(currentData.availableToBorrow)}
+        value={formatUSD(currentData.availableToBorrow.toString())}
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
@@ -135,7 +136,7 @@ function MetricCard({
   onTokenSwitch,
 }: {
   title: string;
-  value: number;
+  value: any;
   selectedToken: "tokenA" | "tokenB";
   onTokenSwitch: (token: "tokenA" | "tokenB") => void;
 }) {
@@ -203,7 +204,7 @@ function HealthCard({
   );
 }
 
-function formatUSD(n: number) {
-  const formatted_value = n / 1000000000;
+function formatUSD(n: string) {
+  const formatted_value = Number(n) / 1000000000;
   return formatted_value;
 }

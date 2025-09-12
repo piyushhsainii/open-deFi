@@ -34,7 +34,7 @@ pub struct Borrow<'info>{
         mut,
         seeds=[b"treasure",mint.key().as_ref()],
         token::mint=mint,
-        token::authority=bank,
+        token::authority=token_bank_acc,
         token::token_program = token_program, 
         bump
     )]
@@ -56,10 +56,9 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
     let user_account= &mut ctx.accounts.user_account;
     let total_collateral:u128;
     let borrowed_amount_in_usd:u128;
-
+    let stored_amount = amount.checked_div(1000000000).unwrap();
     // Step 3 -> Real time price using pyth oracle.
     if ctx.accounts.mint.key() == user_account.mint_address.key() {
-
         // Calculate SOL collateral if user wants to borrow usdc
         let accrued_value = accrued_interest(user_account.deposited_sol, bank.interest_rate, bank.last_updated)?;
         let feed_id:FeedId = get_feed_id_from_hex(SOL_USD_FEED_ID)?;
@@ -69,10 +68,10 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
         let borrowed_price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &borrowed_feed_id)?;
         
         let normalised_price = normalize_pyth_price(price.price, price.exponent)?;
-        let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, price.exponent)?;
+        let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, borrowed_price.exponent)?;
 
         total_collateral = (accrued_value as u128).checked_mul(normalised_price).ok_or(ErrorCode::MathOverflow)?;
-        borrowed_amount_in_usd = (amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
+        borrowed_amount_in_usd = (stored_amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
         
     } else {
         // Calculate USDC collateral if user wants to borrow sol
@@ -87,11 +86,10 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
         let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, price.exponent)?;
         
         total_collateral = (accrued_value as u128).checked_mul(normalised_price).ok_or(ErrorCode::MathOverflow)?;
-        borrowed_amount_in_usd = (amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
+        borrowed_amount_in_usd = (stored_amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
 
     }
 
-// Step 4 -> Calculating borrowable amount in USD ->
     let borrowable_amount = total_collateral
         .checked_mul(bank.max_ltv as u128)
         .unwrap()
@@ -101,7 +99,6 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
   }
   let mint_key = ctx.accounts.mint.key();
 
-//   Step 5 -> Transfer the funds to the user.
   let signer_seeds:&[&[&[u8]]] = &[&[
        b"treasure",
         mint_key.as_ref(),
@@ -120,25 +117,27 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
     transfer_checked(cpi_context, amount, ctx.accounts.mint.decimals)?;
 
     // Step 6. Updating Bank & User's state.
-   bank.total_borrowed = bank.total_borrowed.checked_add(amount).unwrap();
     let amount_in_shares = if bank.total_borrowed == 0 || bank.total_borrowed_shares == 0 {
-        amount // 1:1 mapping at start
+        stored_amount // 1:1 mapping at start
     } else {
-      amount
+        stored_amount
         .checked_mul(bank.total_borrowed_shares)
-        .unwrap()
+        .ok_or(ErrorCode::MathOverflow)?
         .checked_div(bank.total_borrowed)
-        .unwrap()
+        .ok_or(ErrorCode::MathOverflow)?
     };
     // total borrowed shares 
-    bank.total_borrowed_shares.checked_add(amount_in_shares).unwrap();
+    bank.total_borrowed = bank.total_borrowed.checked_add(stored_amount).unwrap();
+    bank.total_borrowed_shares = bank.total_borrowed_shares.checked_add(amount_in_shares).unwrap();
     //  update the user's state
-    if bank.mint_address.key() == user_account.mint_address.key() {
-        user_account.borrowed_sol += amount;
-        user_account.borrowed_sol_shares = amount.checked_mul(user_account.borrowed_sol_shares).unwrap().checked_div(user_account.borrowed_sol).unwrap();
-    } else {
-        user_account.borrowed_usdc = amount;
+    if ctx.accounts.mint.key() == user_account.mint_address.key() {
+         msg!("Updating USDC borrowed amounts");
+        user_account.borrowed_usdc += stored_amount;
         user_account.borrowed_usdc_shares = amount.checked_mul(user_account.borrowed_usdc_shares).unwrap().checked_div(user_account.borrowed_usdc).unwrap();
+    } else {
+         msg!("Updating USDC borrowed amounts");
+        user_account.borrowed_sol += stored_amount;
+        user_account.borrowed_sol_shares = amount.checked_mul(user_account.borrowed_sol_shares).unwrap().checked_div(user_account.borrowed_sol).unwrap();
     }
 
     Ok(())

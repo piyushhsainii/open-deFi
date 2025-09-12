@@ -19,7 +19,7 @@ pub struct InitializeBank<'info> {
         init,
         payer=signer,
         token::mint=token_mint_address,
-        token::authority=bank,
+        token::authority=token_bank_acc,
         seeds=[b"treasure",token_mint_address.key().as_ref()],
         bump
     )]

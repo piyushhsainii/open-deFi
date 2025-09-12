@@ -7,8 +7,26 @@ import { useState, useMemo, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { type Token, parseAmount } from "@/lib/format";
 import { Progress } from "@/components/ui/progress";
+import {
+  bankBalances,
+  BankInfo,
+  UserAccInfo,
+} from "@/components/hooks/useDashboardData";
+import { Connection } from "@solana/web3.js";
 
-export default function BorrowTab() {
+export default function BorrowTab({
+  bankInfo,
+  userAccountInfo,
+  bankBalances,
+  refetch,
+  connection,
+}: {
+  bankInfo: BankInfo;
+  userAccountInfo: UserAccInfo;
+  bankBalances: bankBalances;
+  refetch: () => Promise<void>;
+  connection: Connection;
+}) {
   const { connected } = useWallet();
   const [token, setToken] = useState<Token>("USDC");
   const [value, setValue] = useState("");

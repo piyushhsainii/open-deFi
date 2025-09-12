@@ -17,7 +17,7 @@ pub struct Deposit<'info> {
         mut,
         seeds=[b"treasure",token_mint_address.key().as_ref()],
         token::mint=token_mint_address,
-        token::authority=bank,
+        token::authority=token_bank_acc,
         token::token_program = token_program_2022, 
         bump
     )]
@@ -52,13 +52,13 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
         mint:account.token_mint_address.to_account_info()
     });
     transfer_checked(ix, amount, account.token_mint_address.decimals)?;
-
+  let store_amount = amount.checked_div(1000000000).unwrap();
   let users_deposit_shares = if account.bank.total_deposits == 0 {
         // First deposit in the bank - user gets 1:1 shares 
-        amount
+        store_amount
     } else {
         // Calculate proportional shares: (amount * existing_shares) / existing_deposits
-        amount
+        store_amount
             .checked_mul(account.bank.total_deposit_shares)
             .unwrap()
             .checked_div(account.bank.total_deposits)
@@ -67,16 +67,16 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
 
     match account.token_mint_address.to_account_info().key() {
         key if key == account.user_lending_program_acc.mint_address.key() =>{
-            account.user_lending_program_acc.deposited_usdc = account.user_lending_program_acc.deposited_usdc.checked_add(amount).unwrap();
+            account.user_lending_program_acc.deposited_usdc = account.user_lending_program_acc.deposited_usdc.checked_add(store_amount).unwrap();
             account.user_lending_program_acc.deposited_usdc_shares = account.user_lending_program_acc.deposited_usdc_shares.checked_add(users_deposit_shares).unwrap();
         },
         _ =>{
-            account.user_lending_program_acc.deposited_sol = account.user_lending_program_acc.deposited_sol.checked_add(amount).unwrap();
+            account.user_lending_program_acc.deposited_sol = account.user_lending_program_acc.deposited_sol.checked_add(store_amount).unwrap();
             account.user_lending_program_acc.deposited_sol_shares = account.user_lending_program_acc.deposited_sol_shares.checked_add(users_deposit_shares).unwrap();
         }
     }
     // Handling total deposit shares
-        account.bank.total_deposits = account.bank.total_deposits.checked_add(amount).unwrap();
+        account.bank.total_deposits = account.bank.total_deposits.checked_add(store_amount).unwrap();
         account.bank.total_deposit_shares = account.bank.total_deposit_shares.checked_add(users_deposit_shares).unwrap();
     Ok(())
 }

@@ -22,7 +22,7 @@ pub struct Liquidate<'info> {
     #[account(
         mut,
         token::mint=collateral_mint,
-        token::authority=collateral_bank,
+        token::authority=collateral_token_bank,
         token::token_program = token_program, 
         seeds=[b"treasure",collateral_mint.key().as_ref()],
         bump
@@ -43,8 +43,10 @@ pub struct Liquidate<'info> {
     #[account(
         mut,
         token::mint=borrowed_mint,
-        token::authority=borrowed_bank,
+        token::authority=borrowed_token_bank,
         token::token_program = token_program, 
+        seeds=[b"treasure",borrowed_mint.key().as_ref()],
+        bump
     )]
     pub borrowed_token_bank:InterfaceAccount<'info,TokenAccount>,
        #[account(
@@ -135,9 +137,9 @@ pub fn process_liquidate(ctx:Context<Liquidate>)-> Result<()> {
     let mint_key = ctx.accounts.collateral_mint.key();
 
     let signer_seeds:&[&[&[u8]]] = &[&[
-        b"bank",
+        b"treasure",
         mint_key.as_ref(),
-        &[ctx.bumps.collateral_bank]
+        &[ctx.bumps.collateral_token_bank]
     ]];
     // Calculating Liquidation Bonus and transferring it to the liquidator as an incentive.
     let liquidation_bonus = liquidation_amount.checked_mul(collateral_bank.liquidation_bonus).unwrap().checked_div(10000).unwrap();
@@ -149,7 +151,7 @@ pub fn process_liquidate(ctx:Context<Liquidate>)-> Result<()> {
             from:ctx.accounts.collateral_token_bank.to_account_info(),
             to:ctx.accounts.liquidator_colleteral_token_account.to_account_info(),
             mint:ctx.accounts.collateral_mint.to_account_info(),
-            authority:collateral_bank.to_account_info(),
+            authority:ctx.accounts.collateral_token_bank.to_account_info(),
         },
         signer_seeds
     );

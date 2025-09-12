@@ -22,34 +22,36 @@ export interface bankBalances {
 }
 
 export interface UserAccInfo {
-  depositedSol: number;
-  depositedSolShares: number;
-  borrowedSol: number;
-  borrowedSolShares: number;
-  depositedUsdc: number;
-  depositedUsdcShares: number;
-  borrowedUsdc: number;
-  borrowedUsdcShares: number;
+  depositedSol: string;
+  depositedSolShares: string;
+  borrowedSol: string;
+  borrowedSolShares: string;
+  depositedUsdc: string;
+  depositedUsdcShares: string;
+  borrowedUsdc: string;
+  borrowedUsdcShares: string;
   mintAddress: PublicKey;
-  healthFactor: number;
+  healthFactor: string;
+}
+
+export interface BankInfo {
+  solBank: {
+    closefactor: number;
+    liqThreshold: number;
+    liqBonus: number;
+    maxLTV: number;
+  };
+  UsdcBank: {
+    closefactor: number;
+    liqThreshold: number;
+    liqBonus: number;
+    maxLTV: number;
+  };
 }
 
 export const useDashboardData = () => {
   const { connected, publicKey } = useWallet();
-  const [bankInfo, setbankInfo] = useState<{
-    solBank: {
-      closefactor: number;
-      liqThreshold: number;
-      liqBonus: number;
-      maxLTV: number;
-    };
-    UsdcBank: {
-      closefactor: number;
-      liqThreshold: number;
-      liqBonus: number;
-      maxLTV: number;
-    };
-  }>({
+  const [bankInfo, setbankInfo] = useState<BankInfo>({
     solBank: {
       closefactor: 0,
       liqThreshold: 0,
@@ -139,7 +141,7 @@ export const useDashboardData = () => {
           depositedSolShares: getAccATA.depositedSolShares.toString(),
           depositedUsdc: getAccATA.depositedUsdc.toString(),
           depositedUsdcShares: getAccATA.depositedUsdcShares.toString(),
-          healthFactor: getAccATA.healthFactor.toNumber(), // small scalar → safe
+          healthFactor: getAccATA.healthFactor.toString(), // small scalar → safe
           mintAddress: getAccATA.mintAddress,
         });
         accountInfo = getAccATA;
@@ -176,9 +178,14 @@ export const useDashboardData = () => {
         `SOL BANK TOTAL DEPOSIT`,
         solBankInfo.totalDeposits.toNumber()
       );
-      console.log(`USDC BANK INFO`, usdcBankInfo.totalDeposits.toNumber());
-      const solMaxLtv = Number(Number(solBankInfo.maxLtv / 10000).toFixed(2));
-      const usdcMaxLtv = Number(Number(usdcBankInfo.maxLtv / 10000).toFixed(2));
+      console.log(`USDC BANK INFO`, usdcBankInfo.totalDepositShares.toNumber());
+      console.log(`SOL BANK INFO`, solBankInfo.totalDepositShares.toNumber());
+      const solMaxLtv = Number(
+        Number(solBankInfo.maxLtv.toNumber() / 10000).toFixed(2)
+      );
+      const usdcMaxLtv = Number(
+        Number(usdcBankInfo.maxLtv.toNumber() / 10000).toFixed(2)
+      );
 
       const solBank = {
         closefactor: solBankInfo.closeFactor.toNumber(),
@@ -212,36 +219,31 @@ export const useDashboardData = () => {
       ).toFixed(2);
 
       const liquidationThreshold = Number(
-        solBankInfo.liquidationThreshold / 10000
+        solBankInfo.liquidationThreshold.toNumber() / 10000
       );
       const usdcLiquidationThreshold = Number(
-        usdcBankInfo.liquidationThreshold.toString() / 1000
+        usdcBankInfo.liquidationThreshold.toNumber() / 1000
       );
-      console.log(
-        `LIQUIDATION THRESHOLD`,
-        usdcBankInfo.liquidationThreshold.toString()
-      );
+
       const solHealthFactor =
-        accountInfo.borrowedUsdc > 0
+        accountInfo.borrowedUsdc.toNumber() > 0
           ? (
               Number(
-                Number(accountInfo.depositedSol.toString()) *
+                Number(accountInfo.depositedSol.toNumber()) *
                   liquidationThreshold
-              ) / accountInfo.borrowedUsdc
+              ) / accountInfo.borrowedUsdc.toNumber()
             ).toFixed(2)
           : 100;
       const usdcHealthFactor =
-        accountInfo.borrowedSol > 0
+        accountInfo.borrowedSol.toNumber() > 0
           ? (
               Number(
-                Number(accountInfo.depositedUsdc.toString()) *
+                Number(accountInfo.depositedUsdc.toNumber()) *
                   usdcLiquidationThreshold
-              ) / accountInfo.borrowedSol
+              ) / accountInfo.borrowedSol.toNumber()
             ).toFixed(2)
           : 100;
 
-      console.log(`AVAILABLE TO BORROW SOL`, solAvailableToBorrow);
-      console.log(`AVAILABLE TO BORROW USDC`, usdcAvailableToBorrow);
       setBankBalances({
         tokenA: {
           // SOL

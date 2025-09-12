@@ -83,7 +83,12 @@ export default function DashboardPage() {
     userAccountInfo,
   } = useDashboardData();
 
-  console.log(bankInfo);
+  const connection = new Connection(
+    "https://devnet.helius-rpc.com/?api-key=ff338341-babd-4354-82c0-e8853c64fa66",
+    {
+      commitment: "confirmed",
+    }
+  );
 
   if (error == "userNA" && alertDialogOpen == false) {
     setalertDialogOpen(true);
@@ -149,13 +154,14 @@ export default function DashboardPage() {
     }
   };
 
+  console.log(`error`, error);
+  console.log(`userAccInfo`, userAccountInfo);
+
   useEffect(() => {
     if (error == "userNA" && userAccountInfo == null) {
       setalertDialogOpen(true);
     }
     if (userAccountInfo) {
-      console.log(`deposited usdc`, userAccountInfo.depositedUsdc);
-      console.log(`deposited sol`, userAccountInfo.depositedSol);
       setalertDialogOpen(false);
     }
   }, [userAccountInfo, alertDialogOpen]);
@@ -297,13 +303,21 @@ export default function DashboardPage() {
                     setToken={setToken}
                     value={value}
                     setValue={setValue}
+                    refetch={refetch}
+                    connection={connection}
                   />
                 </TabsContent>
                 <TabsContent
                   value="borrow"
                   className="transition-all duration-300 ease-in-out"
                 >
-                  <BorrowTab />
+                  <BorrowTab
+                    refetch={refetch}
+                    connection={connection}
+                    bankInfo={bankInfo}
+                    userAccountInfo={userAccountInfo!}
+                    bankBalances={bankBalances}
+                  />
                 </TabsContent>
                 <TabsContent
                   value="repay"

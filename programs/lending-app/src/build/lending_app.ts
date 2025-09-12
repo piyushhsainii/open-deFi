@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/lending_app.json`.
  */
 export type LendingApp = {
-  "address": "4aWe37Q3zNvTAHw2ctkGgwHCZTbSSgpEcqvph4ve7ctg",
+  "address": "De9XBNxh6zcmsfBqCrfjRjBSypN8Xy2GptXgLZbr4qR1",
   "metadata": {
     "name": "lendingApp",
     "version": "0.1.0",
@@ -607,7 +607,28 @@ export type LendingApp = {
         },
         {
           "name": "borrowedTokenBank",
-          "writable": true
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  101,
+                  97,
+                  115,
+                  117,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrowedMint"
+              }
+            ]
+          }
         },
         {
           "name": "userBorrowedTokenAccount",

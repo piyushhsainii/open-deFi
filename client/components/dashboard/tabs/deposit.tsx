@@ -30,17 +30,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { token_address } from "@/lib/data";
-import { useDashboardData } from "@/components/hooks/useDashboardData";
 export default function DepositTab({
   token,
   setToken,
   value,
   setValue,
+  refetch,
+  connection,
 }: {
   token: Token;
   setToken: Dispatch<SetStateAction<Token>>;
   value: string;
   setValue: Dispatch<SetStateAction<string>>;
+  refetch: () => Promise<void>;
+  connection: Connection;
 }) {
   const wallet = useWallet();
   const [balance, setbalance] = useState(0);
@@ -50,13 +53,6 @@ export default function DepositTab({
   );
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
-  const { userAccountInfo, refetch } = useDashboardData();
-  const connection = new Connection(
-    "https://devnet.helius-rpc.com/?api-key=ff338341-babd-4354-82c0-e8853c64fa66",
-    {
-      commitment: "confirmed",
-    }
-  );
 
   const onDeposit = async (connection: Connection) => {
     setState("loading");
@@ -64,7 +60,6 @@ export default function DepositTab({
     setHash(undefined);
     const decimals = 9;
     const transferAmount = Math.floor(Number(value) * 10 ** decimals);
-    console.log(transferAmount);
     const amt = transferAmount;
     if (amt <= 0) {
       setState("error");
@@ -116,7 +111,7 @@ export default function DepositTab({
           [Buffer.from("user"), new PublicKey(wallet.publicKey).toBuffer()],
           program.programId
         );
-
+        console.log(transferAmount);
         const txInstruction = await program.methods
           .deposit(new BN(Number(transferAmount)))
           .accountsStrict({
@@ -140,6 +135,8 @@ export default function DepositTab({
           blockhash: recentBlockHash.blockhash,
           lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
         }).add(txInstruction);
+        const msg = await connection.simulateTransaction(transaction);
+        console.log(msg);
         const signedTx = await wallet.sendTransaction(transaction, connection);
         console.log(signedTx, "Tranasaction Hash");
 
