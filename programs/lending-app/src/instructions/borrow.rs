@@ -107,7 +107,7 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
   let cpi_context = CpiContext::new_with_signer(
      ctx.accounts.token_program.to_account_info(),
      TransferChecked {
-        authority:bank.to_account_info(),
+        authority:ctx.accounts.token_bank_acc.to_account_info(),
         from:ctx.accounts.token_bank_acc.to_account_info(),
         to:ctx.accounts.user_wanted_token_account.to_account_info(),
         mint:ctx.accounts.mint.to_account_info(),

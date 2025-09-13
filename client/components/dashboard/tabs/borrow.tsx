@@ -12,7 +12,13 @@ import {
   BankInfo,
   UserAccInfo,
 } from "@/components/hooks/useDashboardData";
-import { Connection } from "@solana/web3.js";
+import { Connection, Transaction } from "@solana/web3.js";
+import { Program, BN } from "@coral-xyz/anchor";
+import { LendingApp } from "../../../../target/types/lending_app";
+import IDL from "../../../../target/idl/lending_app.json";
+import { PYTH_SOL_PRICE, PYTH_USDC_PRICE, token_address } from "@/lib/data";
+import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
+import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
 export default function BorrowTab({
   bankInfo,
@@ -27,7 +33,7 @@ export default function BorrowTab({
   refetch: () => Promise<void>;
   connection: Connection;
 }) {
-  const { connected } = useWallet();
+  const wallet = useWallet();
   const [token, setToken] = useState<Token>("USDC");
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">(
@@ -59,13 +65,48 @@ export default function BorrowTab({
       setError("Enter a valid amount");
       return;
     }
-    if (toUSD(amt, token) > available) {
-      setState("error");
-      setError("Insufficient collateral");
-      return;
-    }
+    // if (toUSD(amt, token) > available) {
+    //   setState("error");
+    //   setError("Insufficient collateral");
+    //   return;
+    // }
     try {
       // const { tx } = await borrow(token, amt);
+
+      const program: Program<LendingApp> = new Program(IDL, { connection });
+      const mintAddress =
+        token == "USDC" ? token_address.usdc : token_address.sol;
+      // @ts-ignore
+      const pyth = new PythSolanaReceiver({ connection, wallet: wallet });
+
+      const FEED_ID = token == "USDC" ? PYTH_USDC_PRICE : PYTH_SOL_PRICE;
+      const PriceFeedAccount = pyth
+        .getPriceFeedAccountAddress(0, FEED_ID)
+        .toBase58();
+      console.log(value);
+      const DECIAMl_CONVERSION = Number(value) * 1000000000;
+      const ix = await program.methods
+        .borrow(new BN(DECIAMl_CONVERSION))
+        .accounts({
+          mint: mintAddress,
+          tokenProgram: TOKEN_2022_PROGRAM_ID,
+          signer: wallet.publicKey!,
+          priceUpdate: PriceFeedAccount,
+        })
+        .instruction();
+      const getBlockHx = await connection.getLatestBlockhash("confirmed");
+      const tx = new Transaction({
+        feePayer: wallet.publicKey,
+        blockhash: getBlockHx.blockhash,
+        lastValidBlockHeight: getBlockHx.lastValidBlockHeight,
+      }).add(ix);
+
+      const message = await connection.simulateTransaction(tx);
+      console.log(message);
+
+      const txSig = await wallet.sendTransaction(tx, connection);
+      console.log(txSig);
+      await connection.confirmTransaction(txSig);
       setState("success");
       setHash("tx");
       setValue("");
@@ -85,7 +126,7 @@ export default function BorrowTab({
           <TokenSelector
             token={token}
             onChange={setToken}
-            disabled={!connected}
+            disabled={!wallet.connected}
           />
           <AmountInput
             token={token}
@@ -93,7 +134,7 @@ export default function BorrowTab({
             onChange={setValue}
             onMax={() => setValue(String(fromUSD(available, token)))}
             maxLabel="Max safe"
-            disabled={!connected}
+            disabled={!wallet.connected}
           />
           <FieldHelp>
             Available to borrow:{" "}
@@ -132,7 +173,7 @@ export default function BorrowTab({
           <div className="flex items-center gap-3">
             <Button
               onClick={onBorrow}
-              disabled={!connected || state === "loading"}
+              disabled={!wallet.connected || state === "loading"}
               className="border-black text-black transition duration-300 hover:scale-[1.02] hover:shadow-sm bg-transparent"
               variant="outline"
             >

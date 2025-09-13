@@ -63,27 +63,27 @@ export function PortfolioCards({
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       <MetricCard
         title="Total Deposited"
-        value={formatUSD(
+        value={
           selectedToken == "tokenA"
             ? userAccountInfo.depositedSol
             : userAccountInfo.depositedUsdc
-        )}
+        }
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
       <MetricCard
         title="Total Borrowed"
-        value={formatUSD(
+        value={
           selectedToken == "tokenA"
             ? userAccountInfo.borrowedSol
             : userAccountInfo.borrowedUsdc
-        )}
+        }
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
       <MetricCard
         title="Available to Borrow"
-        value={formatUSD(currentData.availableToBorrow.toString())}
+        value={currentData.availableToBorrow}
         selectedToken={selectedToken}
         onTokenSwitch={setSelectedToken}
       />
@@ -148,7 +148,13 @@ function MetricCard({
             {title}
           </CardTitle>
           <TokenSwitch
-            selectedToken={selectedToken}
+            selectedToken={
+              title == "Available to Borrow"
+                ? selectedToken == "tokenA"
+                  ? "tokenB"
+                  : "tokenA"
+                : selectedToken
+            }
             onTokenSwitch={onTokenSwitch}
           />
         </div>
