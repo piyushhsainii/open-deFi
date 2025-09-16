@@ -44,7 +44,6 @@ import {
   clusterApiUrl,
   Connection,
   PublicKey,
-  sendAndConfirmTransaction,
   Transaction,
 } from "@solana/web3.js";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
@@ -310,6 +309,8 @@ export default function AdminBankInitPage() {
         blockhash: recentBlockHash.blockhash,
         lastValidBlockHeight: recentBlockHash.lastValidBlockHeight,
       }).add(instruction);
+
+      // const txSig = await connection.simulateTransaction(tx);
 
       const txSig = await wallet.sendTransaction(tx, connection);
       console.log(`Successfully done Tx signature - `, txSig);

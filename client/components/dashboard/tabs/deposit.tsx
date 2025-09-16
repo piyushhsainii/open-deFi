@@ -5,15 +5,9 @@ import { Button } from "@/components/ui/button";
 import { TokenSelector, AmountInput, FieldHelp, Feedback } from "./common";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { type Token, formatToken, parseAmount } from "@/lib/format";
+import { type Token, formatToken } from "@/lib/format";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import {
-  clusterApiUrl,
-  Connection,
-  PublicKey,
-  Transaction,
-} from "@solana/web3.js";
-import {
-  createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,

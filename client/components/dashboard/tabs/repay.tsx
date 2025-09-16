@@ -4,13 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TokenSelector, AmountInput, FieldHelp, Feedback } from "./common";
 import { useState } from "react";
-import { useLendingData } from "@/hooks/use-lending";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { type Token, formatToken, parseAmount } from "@/lib/format";
 
 export default function RepayTab() {
   const { connected } = useWallet();
-  const { data, repay } = useLendingData();
   const [token, setToken] = useState<Token>("USDC");
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">(
@@ -19,10 +17,8 @@ export default function RepayTab() {
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  const balance =
-    token === "USDC" ? data?.balances.usdc ?? 0 : data?.balances.sol ?? 0;
-  const currentDebt =
-    token === "USDC" ? data?.debts.usdc ?? 0 : data?.debts.sol ?? 0;
+  const balance = 0;
+  const currentDebt = 0;
 
   const onRepay = async () => {
     setState("loading");
@@ -40,9 +36,8 @@ export default function RepayTab() {
       return;
     }
     try {
-      const { tx } = await repay(token, Math.min(amt, currentDebt));
       setState("success");
-      setHash(tx);
+      setHash("");
       setValue("");
     } catch (e: any) {
       setState("error");

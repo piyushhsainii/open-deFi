@@ -52,13 +52,12 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
         mint:account.token_mint_address.to_account_info()
     });
     transfer_checked(ix, amount, account.token_mint_address.decimals)?;
-  let store_amount = amount.checked_div(1000000000).unwrap();
   let users_deposit_shares = if account.bank.total_deposits == 0 {
         // First deposit in the bank - user gets 1:1 shares 
-        store_amount
+        amount
     } else {
         // Calculate proportional shares: (amount * existing_shares) / existing_deposits
-        store_amount
+        amount
             .checked_mul(account.bank.total_deposit_shares)
             .unwrap()
             .checked_div(account.bank.total_deposits)
@@ -67,16 +66,16 @@ pub fn process_deposit(mut ctx:Context<Deposit>, amount:u64)->Result<()>{
 
     match account.token_mint_address.to_account_info().key() {
         key if key == account.user_lending_program_acc.mint_address.key() =>{
-            account.user_lending_program_acc.deposited_usdc = account.user_lending_program_acc.deposited_usdc.checked_add(store_amount).unwrap();
+            account.user_lending_program_acc.deposited_usdc = account.user_lending_program_acc.deposited_usdc.checked_add(amount).unwrap();
             account.user_lending_program_acc.deposited_usdc_shares = account.user_lending_program_acc.deposited_usdc_shares.checked_add(users_deposit_shares).unwrap();
         },
         _ =>{
-            account.user_lending_program_acc.deposited_sol = account.user_lending_program_acc.deposited_sol.checked_add(store_amount).unwrap();
+            account.user_lending_program_acc.deposited_sol = account.user_lending_program_acc.deposited_sol.checked_add(amount).unwrap();
             account.user_lending_program_acc.deposited_sol_shares = account.user_lending_program_acc.deposited_sol_shares.checked_add(users_deposit_shares).unwrap();
         }
     }
     // Handling total deposit shares
-        account.bank.total_deposits = account.bank.total_deposits.checked_add(store_amount).unwrap();
+        account.bank.total_deposits = account.bank.total_deposits.checked_add(amount).unwrap();
         account.bank.total_deposit_shares = account.bank.total_deposit_shares.checked_add(users_deposit_shares).unwrap();
     Ok(())
 }

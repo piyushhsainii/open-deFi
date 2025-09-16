@@ -4,13 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TokenSelector, AmountInput, FieldHelp, Feedback } from "./common";
 import { useState } from "react";
-import { useLendingData } from "@/hooks/use-lending";
 import { type Token, parseAmount, formatToken } from "@/lib/format";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 export default function WithdrawTab() {
   const { connected } = useWallet();
-  const { data, withdraw } = useLendingData();
   const [token, setToken] = useState<Token>("USDC");
   const [value, setValue] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">(
@@ -19,29 +17,27 @@ export default function WithdrawTab() {
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
 
-  const deposited =
-    token === "USDC" ? data?.deposits.usdc ?? 0 : data?.deposits.sol ?? 0;
-  const maxWithdrawable = Math.max(0, deposited - (data?.safetyBuffer ?? 0));
+  const deposited = 0;
+  const maxWithdrawable = 0;
 
   const onWithdraw = async () => {
     setState("loading");
     setError(undefined);
     setHash(undefined);
-    const amt = parseAmount(value, token);
-    if (amt <= 0) {
+
+    if (Number(value) <= 0) {
       setState("error");
       setError("Enter a valid amount");
       return;
     }
-    if (amt > maxWithdrawable) {
+    if (Number(value) > maxWithdrawable) {
       setState("error");
       setError("Cannot withdraw - would trigger liquidation");
       return;
     }
     try {
-      const { tx } = await withdraw(token, amt);
       setState("success");
-      setHash(tx);
+      setHash("");
       setValue("");
     } catch (e: any) {
       setState("error");

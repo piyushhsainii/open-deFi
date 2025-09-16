@@ -44,20 +44,15 @@ pub struct Repay<'info> {
 pub fn process_repay(ctx:Context<Repay>, amount:u64) -> Result<()> {
     let user_account = &mut ctx.accounts.user_account;
     let bank = &mut ctx.accounts.bank;
-    let stored_amount = amount.checked_div(1000000000).unwrap();
     
     let accrued_user_borrowed_amount:u64;
     let initial_borrowed_amount:u64;
     // Updating total borrowed in bank using euler's approach
     if ctx.accounts.repay_mint.key() == user_account.mint_address.key() {      // it means user wants to pay USDC 
-        accrued_user_borrowed_amount = accrued_interest(
-    user_account.borrowed_usdc,bank.interest_rate, bank.last_updated
-            )?;
+        accrued_user_borrowed_amount =user_account.borrowed_usdc;
         initial_borrowed_amount = user_account.borrowed_usdc
     } else {
-        accrued_user_borrowed_amount = accrued_interest(
-user_account.borrowed_sol, bank.interest_rate, bank.last_updated
-        )?;
+        accrued_user_borrowed_amount = user_account.borrowed_sol;
         initial_borrowed_amount = user_account.borrowed_sol;
     }
     // Updating the total borrowed amount incrementing interest
@@ -78,17 +73,17 @@ user_account.borrowed_sol, bank.interest_rate, bank.last_updated
 
     // calculating user shares and bank shares now-
     let value_per_share = bank.total_borrowed.checked_div(bank.total_borrowed_shares).unwrap();
-    let repay_amount_in_shares = stored_amount.checked_div(value_per_share).unwrap();
+    let repay_amount_in_shares = amount.checked_div(value_per_share).unwrap();
 
     // updating the borrow amount in user's state and bank to reflect the transfer.
     bank.total_borrowed_shares = bank.total_borrowed_shares.checked_sub(repay_amount_in_shares).unwrap();
-    bank.total_borrowed = bank.total_borrowed.checked_sub(stored_amount).unwrap();
+    bank.total_borrowed = bank.total_borrowed.checked_sub(amount).unwrap();
     // Updating User's borrowed status
     if ctx.accounts.repay_mint.key() == user_account.mint_address.key() { 
-        user_account.borrowed_usdc = user_account.borrowed_usdc.checked_sub(stored_amount).unwrap();
+        user_account.borrowed_usdc = user_account.borrowed_usdc.checked_sub(amount).unwrap();
         user_account.borrowed_usdc_shares = user_account.borrowed_usdc_shares.checked_sub(repay_amount_in_shares).unwrap();
     } else {
-        user_account.borrowed_sol = user_account.borrowed_sol.checked_sub(stored_amount).unwrap();
+        user_account.borrowed_sol = user_account.borrowed_sol.checked_sub(amount).unwrap();
         user_account.borrowed_sol_shares = user_account.borrowed_sol_shares.checked_sub(repay_amount_in_shares).unwrap();
     }
 

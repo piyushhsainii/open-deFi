@@ -7,11 +7,32 @@ pub fn accrued_interest(principle_amount: u64, roi: u64, last_updated: i64) -> R
     let clock = Clock::get()?;
     let elapsed_time = clock.unix_timestamp - last_updated;
 
-    let accrued_interest = (principle_amount as f64 
-        * std::f64::consts::E.powf(roi as f64 * elapsed_time as f64)) as u64;
+    // No time has passed
+    if elapsed_time <= 0 {
+        return Ok(principle_amount);
+    }
 
-    Ok(accrued_interest)
+    // seconds in a year
+    let year_seconds: u64 = (365.25 * 24.0 * 3600.0) as u64;
+
+    // interest = principle_amount * roi * elapsed_time / (year_seconds * 10_000)
+let interest = principle_amount
+    .checked_mul(roi)
+    .ok_or(ErrorCode::MathOverflow)?
+    .checked_div(10_000)
+    .ok_or(ErrorCode::MathOverflow)?
+    .checked_mul(elapsed_time as u64)
+    .ok_or(ErrorCode::MathOverflow)?
+    .checked_div(year_seconds)
+    .ok_or(ErrorCode::MathOverflow)?;
+
+
+    // return principle + interest
+    Ok(principle_amount
+        .checked_add(interest)
+        .ok_or(ErrorCode::MathOverflow)?)
 }
+
 /// Normalize a Pyth price into a fixed-point u128 with 6 decimals (like "micro USD").
 /// Example:
 ///   price = 42120000, expo = -6  =>  42_120_000 (42.12 USD in micro-units)

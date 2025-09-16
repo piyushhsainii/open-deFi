@@ -133,14 +133,30 @@ export const useDashboardData = () => {
       try {
         const getAccATA = await program.account.user.fetch(user, "confirmed");
         setuserAccountInfo({
-          borrowedSol: getAccATA.borrowedSol.toString(),
-          borrowedSolShares: getAccATA.borrowedSolShares.toString(),
-          borrowedUsdc: getAccATA.borrowedUsdc.toString(),
-          borrowedUsdcShares: getAccATA.borrowedUsdcShares.toString(),
-          depositedSol: getAccATA.depositedSol.toString(),
-          depositedSolShares: getAccATA.depositedSolShares.toString(),
-          depositedUsdc: getAccATA.depositedUsdc.toString(),
-          depositedUsdcShares: getAccATA.depositedUsdcShares.toString(),
+          borrowedSol: (
+            getAccATA.borrowedSol.toNumber() / 1000000000
+          ).toString(),
+          borrowedSolShares: (
+            getAccATA.borrowedSolShares.toNumber() / 1000000000
+          ).toString(),
+          borrowedUsdc: (
+            getAccATA.borrowedUsdc.toNumber() / 1000000000
+          ).toString(),
+          borrowedUsdcShares: (
+            getAccATA.borrowedUsdcShares.toNumber() / 1000000000
+          ).toString(),
+          depositedSol: (
+            getAccATA.depositedSol.toNumber() / 1000000000
+          ).toString(),
+          depositedSolShares: (
+            getAccATA.depositedSolShares.toNumber() / 1000000000
+          ).toString(),
+          depositedUsdc: (
+            getAccATA.depositedUsdc.toNumber() / 1000000000
+          ).toString(),
+          depositedUsdcShares: (
+            getAccATA.depositedUsdcShares.toNumber() / 1000000000
+          ).toString(),
           healthFactor: getAccATA.healthFactor.toString(), // small scalar → safe
           mintAddress: getAccATA.mintAddress,
         });
@@ -210,12 +226,12 @@ export const useDashboardData = () => {
       }
 
       const solAvailableToBorrow = Number(
-        solMaxLtv * Number(accountInfo.depositedSol.toString())
+        solMaxLtv * Number(accountInfo.depositedSol.toNumber() / 1000000000)
       ).toFixed(2);
 
       // Calculate USDC available to borrow and health factor
       const usdcAvailableToBorrow = Number(
-        Number(accountInfo.depositedUsdc.toString()) * usdcMaxLtv
+        Number(accountInfo.depositedUsdc.toNumber() / 1000000000) * usdcMaxLtv
       ).toFixed(2);
 
       const liquidationThreshold = Number(
@@ -229,18 +245,20 @@ export const useDashboardData = () => {
         accountInfo.borrowedUsdc.toNumber() > 0
           ? (
               Number(
-                Number(accountInfo.depositedSol.toNumber()) *
+                Number(accountInfo.depositedSol.toNumber() / 1000000000) *
                   liquidationThreshold
-              ) / accountInfo.borrowedUsdc.toNumber()
+              ) /
+              (accountInfo.borrowedUsdc.toNumber() / 1000000000)
             ).toFixed(2)
           : 100;
       const usdcHealthFactor =
         accountInfo.borrowedSol.toNumber() > 0
           ? (
               Number(
-                Number(accountInfo.depositedUsdc.toNumber()) *
+                Number(accountInfo.depositedUsdc.toNumber() / 1000000000) *
                   usdcLiquidationThreshold
-              ) / accountInfo.borrowedSol.toNumber()
+              ) /
+              (accountInfo.borrowedSol.toNumber() / 1000000000)
             ).toFixed(2)
           : 100;
 

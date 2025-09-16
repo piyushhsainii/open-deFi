@@ -54,47 +54,55 @@ pub struct Borrow<'info>{
 pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
     let bank = &mut ctx.accounts.bank;
     let user_account= &mut ctx.accounts.user_account;
-    let total_collateral:u128;
+    let total_collateral:u64;
     let borrowed_amount_in_usd:u128;
-    let stored_amount = amount.checked_div(1000000000).unwrap();
     // Step 3 -> Real time price using pyth oracle.
     if ctx.accounts.mint.key() == user_account.mint_address.key() {
         // Calculate SOL collateral if user wants to borrow usdc
-        let accrued_value = accrued_interest(user_account.deposited_sol, bank.interest_rate, bank.last_updated)?;
+        msg!("Inside the USDC area");
         let feed_id:FeedId = get_feed_id_from_hex(SOL_USD_FEED_ID)?;
         let borrowed_feed_id:FeedId = get_feed_id_from_hex(USDC_USD_FEED_ID)?;
         
-        let price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &feed_id)?;
-        let borrowed_price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &borrowed_feed_id)?;
+        // let price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &feed_id)?;
+        // let borrowed_price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &borrowed_feed_id)?;
         
-        let normalised_price = normalize_pyth_price(price.price, price.exponent)?;
-        let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, borrowed_price.exponent)?;
+        // let _normalised_price = normalize_pyth_price(price.price, price.exponent)?;
+        // let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, borrowed_price.exponent)?;
+        // msg!("normalised_price:{}",borrowed_normalised_price);
 
-        total_collateral = (accrued_value as u128).checked_mul(normalised_price).ok_or(ErrorCode::MathOverflow)?;
-        borrowed_amount_in_usd = (stored_amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
+        total_collateral = user_account.deposited_sol;
+        // borrowed_amount_in_usd = (amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
         
     } else {
+        msg!("Inside the sol area");
         // Calculate USDC collateral if user wants to borrow sol
-        let accrued_value = accrued_interest( user_account.deposited_usdc, bank.interest_rate, bank.last_updated)?;
         let feed_id:FeedId = get_feed_id_from_hex(USDC_USD_FEED_ID)?;
         let borrowed_feed_id:FeedId = get_feed_id_from_hex(SOL_USD_FEED_ID)?;
 
-        let price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &feed_id)?;
-        let borrowed_price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &borrowed_feed_id)?;
+        // let price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &feed_id)?;
+        // let borrowed_price = ctx.accounts.price_update.get_price_no_older_than(&Clock::get()?, MAX_AGE, &borrowed_feed_id)?;
 
-        let normalised_price = normalize_pyth_price(price.price, price.exponent)?;
-        let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, price.exponent)?;
+        // let _normalised_price = normalize_pyth_price(price.price, price.exponent)?;
+        // let borrowed_normalised_price = normalize_pyth_price(borrowed_price.price, borrowed_price.exponent)?;
+        // msg!("normalised_price:{}",borrowed_normalised_price);
         
-        total_collateral = (accrued_value as u128).checked_mul(normalised_price).ok_or(ErrorCode::MathOverflow)?;
-        borrowed_amount_in_usd = (stored_amount as u128).checked_mul(borrowed_normalised_price).ok_or(ErrorCode::MathOverflow)?;
+        total_collateral = user_account.deposited_usdc;
 
     }
 
+    msg!("total collateral: {}", total_collateral);
+    
+    // NOT USING PYTH PRICING VARIABLES BECAUSE THIS IS ON DEVNET AND DEVNET TOKENS DOES NOT HOLD REAL VALUE. 
+
+
     let borrowable_amount = total_collateral
-        .checked_mul(bank.max_ltv as u128)
-        .unwrap()
-        / 10_000u128;                           // necessary to convert bps format into decimal.
-  if borrowed_amount_in_usd > borrowable_amount {
+    .checked_mul(bank.max_ltv)
+    .unwrap()
+    / 10_000u64;         
+    
+    msg!("borrowable_amount: {}", borrowable_amount);
+
+  if amount > borrowable_amount {
        return Err(ErrorCode::OverBorrow.into());
   }
   let mint_key = ctx.accounts.mint.key();
@@ -118,26 +126,28 @@ pub fn process_borrow(ctx:Context<Borrow>,amount:u64)->Result<()>{
 
     // Step 6. Updating Bank & User's state.
     let amount_in_shares = if bank.total_borrowed == 0 || bank.total_borrowed_shares == 0 {
-        stored_amount // 1:1 mapping at start
+        amount // 1:1 mapping at start
     } else {
-        stored_amount
+        amount
         .checked_mul(bank.total_borrowed_shares)
         .ok_or(ErrorCode::MathOverflow)?
         .checked_div(bank.total_borrowed)
         .ok_or(ErrorCode::MathOverflow)?
     };
     // total borrowed shares 
-    bank.total_borrowed = bank.total_borrowed.checked_add(stored_amount).unwrap();
+    bank.total_borrowed = bank.total_borrowed.checked_add(amount).unwrap();
     bank.total_borrowed_shares = bank.total_borrowed_shares.checked_add(amount_in_shares).unwrap();
+    let timestamp = Clock::get()?;
+    bank.last_updated = timestamp.unix_timestamp;
     //  update the user's state
     if ctx.accounts.mint.key() == user_account.mint_address.key() {
          msg!("Updating USDC borrowed amounts");
-        user_account.borrowed_usdc += stored_amount;
-        user_account.borrowed_usdc_shares = amount.checked_mul(user_account.borrowed_usdc_shares).unwrap().checked_div(user_account.borrowed_usdc).unwrap();
+         user_account.borrowed_usdc = user_account.borrowed_usdc.checked_add(amount).unwrap();
+         user_account.borrowed_usdc_shares = user_account.borrowed_usdc_shares.checked_add(amount_in_shares).unwrap();
     } else {
-         msg!("Updating USDC borrowed amounts");
-        user_account.borrowed_sol += stored_amount;
-        user_account.borrowed_sol_shares = amount.checked_mul(user_account.borrowed_sol_shares).unwrap().checked_div(user_account.borrowed_sol).unwrap();
+         msg!("Updating SOL borrowed amounts");
+        user_account.borrowed_sol = user_account.borrowed_sol.checked_add(amount).unwrap();
+        user_account.borrowed_sol_shares =  user_account.borrowed_sol_shares.checked_add(amount_in_shares).unwrap();
     }
 
     Ok(())

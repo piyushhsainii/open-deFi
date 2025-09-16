@@ -12,10 +12,10 @@ import {
   BankInfo,
   UserAccInfo,
 } from "@/components/hooks/useDashboardData";
-import { Connection, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import { Program, BN } from "@coral-xyz/anchor";
 import { LendingApp } from "../../../../target/types/lending_app";
-import IDL from "../../../../target/idl/lending_app.json";
+import IDL from "../../../../programs/lending-app/src/build/lending_app.json";
 import { PYTH_SOL_PRICE, PYTH_USDC_PRICE, token_address } from "@/lib/data";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
@@ -84,14 +84,37 @@ export default function BorrowTab({
         .getPriceFeedAccountAddress(0, FEED_ID)
         .toBase58();
       console.log(value);
+
+      const [bankPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("bank"), new PublicKey(mintAddress).toBuffer()],
+        program.programId
+      );
+
+      const [userPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("user"), wallet.publicKey!.toBuffer()],
+        program.programId
+      );
+
+      const [treasuryPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from("treasure"), new PublicKey(mintAddress).toBuffer()],
+        program.programId
+      );
+      console.log(bankPda.toString());
+      console.log(userPda.toString());
+      console.log(treasuryPda.toString());
+
       const DECIAMl_CONVERSION = Number(value) * 1000000000;
+      console.log(DECIAMl_CONVERSION);
       const ix = await program.methods
         .borrow(new BN(DECIAMl_CONVERSION))
-        .accounts({
+        .accountsPartial({
           mint: mintAddress,
           tokenProgram: TOKEN_2022_PROGRAM_ID,
           signer: wallet.publicKey!,
           priceUpdate: PriceFeedAccount,
+          bank: bankPda,
+          userAccount: userPda,
+          tokenBankAcc: treasuryPda,
         })
         .instruction();
       const getBlockHx = await connection.getLatestBlockhash("confirmed");
@@ -101,8 +124,8 @@ export default function BorrowTab({
         lastValidBlockHeight: getBlockHx.lastValidBlockHeight,
       }).add(ix);
 
-      const message = await connection.simulateTransaction(tx);
-      console.log(message);
+      // const message = await connection.simulateTransaction(tx);
+      // console.log(message);
 
       const txSig = await wallet.sendTransaction(tx, connection);
       console.log(txSig);

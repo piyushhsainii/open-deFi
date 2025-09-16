@@ -198,7 +198,7 @@ function HealthCard({
           key={`health-${selectedToken}`}
           className="mb-2 text-xl font-semibold animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
         >
-          {value.toFixed(0)}%
+          {value}%
         </div>
         <Progress
           value={value}
