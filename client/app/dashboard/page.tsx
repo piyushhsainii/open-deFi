@@ -256,9 +256,9 @@ export default function DashboardPage() {
               </section>
             )}
 
-            <section aria-label="Account summary" className="mb-8">
+            {/* <section aria-label="Account summary" className="mb-8">
               <AccountSummary loading={false} bankInfo={bankInfo} />
-            </section>
+            </section> */}
 
             <section aria-label="Actions" className="mb-16">
               <Tabs defaultValue="deposit" className="w-full">
@@ -323,13 +323,25 @@ export default function DashboardPage() {
                   value="repay"
                   className="transition-all duration-300 ease-in-out"
                 >
-                  <RepayTab />
+                  <RepayTab
+                    refetch={refetch}
+                    connection={connection}
+                    bankInfo={bankInfo}
+                    userAccountInfo={userAccountInfo!}
+                    bankBalances={bankBalances}
+                  />
                 </TabsContent>
                 <TabsContent
                   value="withdraw"
                   className="transition-all duration-300 ease-in-out"
                 >
-                  <WithdrawTab />
+                  <WithdrawTab
+                    refetch={refetch}
+                    connection={connection}
+                    bankInfo={bankInfo}
+                    userAccountInfo={userAccountInfo!}
+                    bankBalances={bankBalances}
+                  />
                 </TabsContent>
                 <TabsContent
                   value="liquidate"

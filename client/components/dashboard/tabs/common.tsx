@@ -62,6 +62,7 @@ export function AmountInput({
   label = "Amount",
   maxLabel = "Max",
   disabled,
+  maxAmount,
 }: {
   token: Token;
   value: string;
@@ -70,6 +71,7 @@ export function AmountInput({
   label?: string;
   maxLabel?: string;
   disabled?: boolean;
+  maxAmount: number;
 }) {
   return (
     <div className="space-y-2">
@@ -98,6 +100,7 @@ export function AmountInput({
           className="border-black focus-visible:ring-0"
           aria-label={`${label} in ${token}`}
           step={0.01}
+          max={maxAmount}
           type="number"
           min="0"
         />

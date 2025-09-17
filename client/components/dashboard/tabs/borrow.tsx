@@ -154,8 +154,21 @@ export default function BorrowTab({
           <AmountInput
             token={token}
             value={value}
+            maxAmount={
+              token == "USDC"
+                ? bankBalances.tokenA.availableToBorrow
+                : bankBalances.tokenB.availableToBorrow
+            }
             onChange={setValue}
-            onMax={() => setValue(String(fromUSD(available, token)))}
+            onMax={() => {
+              console.log(bankBalances.tokenA.availableToBorrow);
+              console.log(bankBalances.tokenB.availableToBorrow);
+              setValue(
+                token == "USDC"
+                  ? bankBalances.tokenA.availableToBorrow
+                  : bankBalances.tokenB.availableToBorrow
+              );
+            }}
             maxLabel="Max safe"
             disabled={!wallet.connected}
           />

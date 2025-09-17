@@ -267,15 +267,15 @@ export const useDashboardData = () => {
           // SOL
           availableToBorrow: solAvailableToBorrow ?? 0,
           healthFactor: solHealthFactor,
-          totalBorrowed: accountInfo.borrowedSol,
-          totalDeposited: accountInfo.depositedSol,
+          totalBorrowed: accountInfo.borrowedSol.toNumber(),
+          totalDeposited: accountInfo.depositedSol.toNumber(),
         },
         tokenB: {
           // USDC
           availableToBorrow: usdcAvailableToBorrow ?? 0,
           healthFactor: usdcHealthFactor,
-          totalBorrowed: accountInfo.borrowedUsdc,
-          totalDeposited: accountInfo.depositedUsdc,
+          totalBorrowed: accountInfo.borrowedUsdc.toNumber(),
+          totalDeposited: accountInfo.depositedUsdc.toNumber(),
         },
       });
     } catch (err) {
