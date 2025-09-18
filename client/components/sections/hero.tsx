@@ -2,7 +2,6 @@
 
 import { useCallback } from "react";
 import type React from "react";
-import { ConnectWalletButton } from "@/components/connect-wallet-button";
 import { FadeIn } from "@/components/ui/fade-in";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
@@ -18,9 +17,9 @@ export function HeroSection() {
 
   return (
     <section className="relative overflow-hidden border-b border-gray-200">
-      <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-        <FadeIn className="grid gap-10 md:grid-cols-2 md:gap-12 items-center">
-          <div className="space-y-6">
+      <div className="mx-auto max-w-6xl px-4 py-16 md:py-10 h-[50vh]">
+        <FadeIn className="grid gap-10 md:grid-cols-2 md:gap-12 items-center h-full">
+          <div className="space-y-9">
             <h1 className="text-3xl md:text-5xl font-semibold text-balance">
               Decentralized Lending on Solana
             </h1>
@@ -46,7 +45,7 @@ export function HeroSection() {
             </div>
           </div>
 
-          <div className="relative">
+          <div className="relative  h-full">
             <svg
               className="w-full h-64 md:h-80"
               viewBox="0 0 400 300"

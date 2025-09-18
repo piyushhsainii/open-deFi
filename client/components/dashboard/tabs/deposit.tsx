@@ -36,7 +36,7 @@ export default function DepositTab({
   setToken: Dispatch<SetStateAction<Token>>;
   value: string;
   setValue: Dispatch<SetStateAction<string>>;
-  refetch: () => Promise<void>;
+  refetch: any;
   connection: Connection;
 }) {
   const wallet = useWallet();
@@ -171,6 +171,10 @@ export default function DepositTab({
   };
 
   useEffect(() => {
+    setValue("0");
+  }, [token]);
+
+  useEffect(() => {
     getMaxBalance();
   }, [wallet.connected, token]);
 
@@ -201,6 +205,7 @@ export default function DepositTab({
             </TooltipProvider>
           </div>
           <AmountInput
+            maxAmount={balance}
             token={token}
             value={value}
             onChange={setValue}

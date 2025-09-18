@@ -7,7 +7,7 @@ import type { JSX } from "react";
 type FadeInProps = {
   as?: keyof JSX.IntrinsicElements;
   className?: string;
-  children: JSX.ReactNode;
+  children: any;
   delay?: number;
 };
 

@@ -30,7 +30,7 @@ export default function BorrowTab({
   bankInfo: BankInfo;
   userAccountInfo: UserAccInfo;
   bankBalances: bankBalances;
-  refetch: () => Promise<void>;
+  refetch: any;
   connection: Connection;
 }) {
   const wallet = useWallet();
@@ -43,16 +43,27 @@ export default function BorrowTab({
   const [error, setError] = useState<string | undefined>(undefined);
 
   const available = 0;
-  const amt = parseAmount(value, token);
+  const amt = Number(value);
 
   const ratio = useMemo(() => {
-    const borrowed = 0 + toUSD(amt, token);
-    const deposited = 1;
+    const borrowed =
+      Number(value) +
+      (token == "USDC"
+        ? Number(userAccountInfo?.borrowedUsdc)
+        : Number(userAccountInfo?.borrowedSol));
+    const deposited =
+      token == "USDC"
+        ? Number(userAccountInfo?.depositedUsdc)
+        : Number(userAccountInfo?.depositedSol);
     const pct = Math.min(100, Math.max(0, (borrowed / deposited) * 100));
+    console.log(`borrowed`, borrowed);
+    console.log(`deposited`, deposited);
     return isFinite(pct) ? pct : 0;
-  }, [amt, token]);
+  }, [amt, token, value]);
 
-  useEffect(() => {});
+  useEffect(() => {
+    setValue("0");
+  }, [token]);
 
   const risk = ratio > 80 ? "High" : ratio > 60 ? "Elevated" : "Low";
 
@@ -65,14 +76,7 @@ export default function BorrowTab({
       setError("Enter a valid amount");
       return;
     }
-    // if (toUSD(amt, token) > available) {
-    //   setState("error");
-    //   setError("Insufficient collateral");
-    //   return;
-    // }
     try {
-      // const { tx } = await borrow(token, amt);
-
       const program: Program<LendingApp> = new Program(IDL, { connection });
       const mintAddress =
         token == "USDC" ? token_address.usdc : token_address.sol;
@@ -99,10 +103,6 @@ export default function BorrowTab({
         [Buffer.from("treasure"), new PublicKey(mintAddress).toBuffer()],
         program.programId
       );
-      console.log(bankPda.toString());
-      console.log(userPda.toString());
-      console.log(treasuryPda.toString());
-
       const DECIAMl_CONVERSION = Number(value) * 1000000000;
       console.log(DECIAMl_CONVERSION);
       const ix = await program.methods
@@ -133,6 +133,7 @@ export default function BorrowTab({
       setState("success");
       setHash("tx");
       setValue("");
+      refetch();
     } catch (e: any) {
       setState("error");
       setError(e?.message || "Network error");
@@ -161,8 +162,6 @@ export default function BorrowTab({
             }
             onChange={setValue}
             onMax={() => {
-              console.log(bankBalances.tokenA.availableToBorrow);
-              console.log(bankBalances.tokenB.availableToBorrow);
               setValue(
                 token == "USDC"
                   ? bankBalances.tokenA.availableToBorrow
@@ -175,13 +174,7 @@ export default function BorrowTab({
           <FieldHelp>
             Available to borrow:{" "}
             <span className="font-mono">${available.toFixed(2)}</span> • Borrow
-            APY:{" "}
-            <span className="font-mono">
-              {/* {token === "USDC"
-                ? data?.rates.usdc.borrowAPY
-                : data?.rates.sol.borrowAPY} */}
-              %
-            </span>
+            APY: <span className="font-mono">%</span>
           </FieldHelp>
 
           <div

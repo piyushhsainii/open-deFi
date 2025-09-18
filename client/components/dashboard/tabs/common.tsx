@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { Token } from "@/lib/format";
+import { toast } from "sonner";
 
 export function TokenSelector({
   token,
@@ -94,13 +95,20 @@ export function AmountInput({
         <Input
           inputMode="decimal"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => {
+            if (Number(e.target.value) >= Number(maxAmount)) {
+              onChange(JSON.stringify(maxAmount));
+              toast("Cannot Deposit more than available balance");
+            } else {
+              onChange(e.target.value);
+            }
+          }}
           disabled={disabled}
           placeholder="0.00"
           className="border-black focus-visible:ring-0"
           aria-label={`${label} in ${token}`}
           step={0.01}
-          max={maxAmount}
+          max={Number(maxAmount)}
           type="number"
           min="0"
         />

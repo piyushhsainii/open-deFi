@@ -21,12 +21,15 @@ import {
   BankInfo,
   UserAccInfo,
 } from "@/components/hooks/useDashboardData";
-import { Connection, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import { LendingApp } from "../../../../programs/lending-app/src/build/lending_app";
 import { BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../../programs/lending-app/src/build/lending_app.json";
 import { token_address } from "@/lib/data";
-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+import {
+  getAssociatedTokenAddress,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
 import { toast } from "sonner";
 
 export default function WithdrawTab({
@@ -39,7 +42,7 @@ export default function WithdrawTab({
   bankInfo: BankInfo;
   userAccountInfo: UserAccInfo;
   bankBalances: bankBalances;
-  refetch: () => Promise<void>;
+  refetch: any;
   connection: Connection;
 }) {
   const wallet = useWallet();
@@ -51,7 +54,7 @@ export default function WithdrawTab({
   const [hash, setHash] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [maxWithdrawable, setmaxWithdrawable] = useState(0);
-
+  const [balance, setbalance] = useState(0);
   // Dialog states
   const [showLiquidationDialog, setShowLiquidationDialog] = useState(false);
   const [showRiskDialog, setShowRiskDialog] = useState(false);
@@ -69,10 +72,15 @@ export default function WithdrawTab({
       setError("Enter a valid amount");
       return;
     }
-    if (Number(value) > maxWithdrawable) {
+    const activeDeposit =
+      token == "USDC"
+        ? userAccountInfo.depositedUsdc
+        : userAccountInfo.depositedSol;
+
+    if (Number(value) > Number(activeDeposit)) {
       setState("error");
-      setError("Cannot withdraw - would trigger liquidation");
-      return;
+      setError("Cannot withdraw more amount than deposited");
+      // return;
     }
     const mint = token == "USDC" ? token_address.usdc : token_address.sol;
 
@@ -87,17 +95,17 @@ export default function WithdrawTab({
           signer: wallet.publicKey,
         })
         .instruction();
-
       const bx = await connection.getLatestBlockhash();
       const tx = new Transaction({
         feePayer: wallet.publicKey,
         blockhash: bx.blockhash,
         lastValidBlockHeight: bx.lastValidBlockHeight,
       }).add(ix);
+
       const txSig = await wallet.sendTransaction(tx, connection);
       console.log(txSig);
       await connection.confirmTransaction(txSig, "confirmed");
-
+      refetch();
       setState("success");
       setHash("");
       setValue("");
@@ -110,35 +118,42 @@ export default function WithdrawTab({
   const computeMaxWithDrawable = async () => {
     const activeDeposit =
       token == "USDC"
-        ? Number(userAccountInfo.depositedUsdc)
-        : Number(userAccountInfo.depositedSol);
+        ? Number(userAccountInfo?.depositedUsdc)
+        : Number(userAccountInfo?.depositedSol);
     const activeBorrowed =
       token == "USDC"
-        ? Number(userAccountInfo.borrowedUsdc)
-        : Number(userAccountInfo.borrowedSol);
+        ? Number(userAccountInfo?.borrowedUsdc)
+        : Number(userAccountInfo?.borrowedSol);
     const afterBalance = activeDeposit - Number(value);
+    const MinAmountRequired = (activeDeposit * 80) / 100;
 
     // check for liquidation threshold
-    const HealthFactor = afterBalance / activeBorrowed;
+    const HealthFactor = Number(
+      Number(MinAmountRequired / activeBorrowed).toFixed(2)
+    );
     if (HealthFactor < 1) {
       // show warning to user that account cant be liquidated
       setShowLiquidationDialog(true);
-      return;
     }
     if (HealthFactor > 1 && HealthFactor < 1.2) {
       // show warning that account is at risk
       setShowRiskDialog(true);
-      return;
     }
-    const MinAmountRequired = (activeBorrowed * 120) / 100;
 
     const maxSafeWithDrawal = activeDeposit - MinAmountRequired;
     setmaxWithdrawable(maxSafeWithDrawal);
+    console.log(`Health Factor`, HealthFactor);
+    console.log(`Min Amt Require-`, MinAmountRequired);
+    console.log(`Max Safe Withdrawal`, maxSafeWithDrawal);
   };
-  console.log(value);
+
   useEffect(() => {
     computeMaxWithDrawable();
   }, [value, token]);
+
+  useEffect(() => {
+    setValue("0");
+  }, [token]);
 
   return (
     <>
@@ -156,8 +171,8 @@ export default function WithdrawTab({
             <AmountInput
               maxAmount={
                 token == "USDC"
-                  ? Number(userAccountInfo.depositedUsdc)
-                  : Number(userAccountInfo.depositedSol)
+                  ? Number(userAccountInfo?.depositedUsdc)
+                  : Number(userAccountInfo?.depositedSol)
               }
               token={token}
               value={value}
@@ -166,8 +181,10 @@ export default function WithdrawTab({
               disabled={!wallet.connected}
             />
             <FieldHelp>
-              Max Amount that you can withdrawa safely:{" "}
-              <span className="font-mono">
+              {Number(value) > maxWithdrawable
+                ? "This Withdrawal may put your account at risk of liquidation"
+                : " Max Amount that you can withdrawa safely: "}
+              <span className="font-mono px-1">
                 {formatToken(maxWithdrawable, token)}
               </span>
             </FieldHelp>

@@ -4,7 +4,7 @@ import { Program, BN } from "@coral-xyz/anchor";
 import { LendingApp } from "../../../target/types/lending_app";
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import IDL from "../../../programs/lending-app/src/build/lending_app.json";
-import { SUPPORTED_TOKENS } from "@/app/admin/page";
+import { SUPPORTED_TOKENS } from "@/lib/data";
 
 export interface bankBalances {
   tokenA: {
@@ -22,16 +22,16 @@ export interface bankBalances {
 }
 
 export interface UserAccInfo {
-  depositedSol: string;
-  depositedSolShares: string;
-  borrowedSol: string;
-  borrowedSolShares: string;
-  depositedUsdc: string;
-  depositedUsdcShares: string;
-  borrowedUsdc: string;
-  borrowedUsdcShares: string;
+  depositedSol: string | BN;
+  depositedSolShares: string | BN;
+  borrowedSol: string | BN;
+  borrowedSolShares: string | BN;
+  depositedUsdc: string | BN;
+  depositedUsdcShares: string | BN;
+  borrowedUsdc: string | BN;
+  borrowedUsdcShares: string | BN;
   mintAddress: PublicKey;
-  healthFactor: string;
+  healthFactor: string | BN;
 }
 
 export interface BankInfo {
@@ -85,6 +85,14 @@ export const useDashboardData = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [HealthFactorSol, seHealthFactorSol] = useState(0);
+  const [HealthFactorUsdc, setHealthFactorUsdc] = useState(0);
+  const [maxSafeWithDrawal, setmaxSafeWithDrawal] = useState({
+    usdc: 0,
+    sol: 0,
+  });
+  const [Positions, setPositions] = useState<any>([]);
+  const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
 
   const fetchDashboardData = async () => {
     if (!connected || !publicKey) {
@@ -109,7 +117,6 @@ export const useDashboardData = () => {
     setError(null);
 
     try {
-      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
       const program: Program<LendingApp> = new Program(IDL, {
         connection: connection,
       });
@@ -224,21 +231,27 @@ export const useDashboardData = () => {
         setError("userNa");
         return;
       }
-
+      const ActiveDepositSol = Number(
+        accountInfo.depositedSol.toNumber() - accountInfo.borrowedSol.toNumber()
+      );
+      const ActiveDepositUsdc = Number(
+        accountInfo.depositedUsdc.toNumber() -
+          accountInfo.borrowedUsdc.toNumber()
+      );
       const solAvailableToBorrow = Number(
-        solMaxLtv * Number(accountInfo.depositedSol.toNumber() / 1000000000)
+        (ActiveDepositSol * solMaxLtv) / 1000000000
       ).toFixed(2);
 
       // Calculate USDC available to borrow and health factor
       const usdcAvailableToBorrow = Number(
-        Number(accountInfo.depositedUsdc.toNumber() / 1000000000) * usdcMaxLtv
+        (ActiveDepositUsdc * usdcMaxLtv) / 1000000000
       ).toFixed(2);
 
       const liquidationThreshold = Number(
         solBankInfo.liquidationThreshold.toNumber() / 10000
       );
       const usdcLiquidationThreshold = Number(
-        usdcBankInfo.liquidationThreshold.toNumber() / 1000
+        usdcBankInfo.liquidationThreshold.toNumber() / 10000
       );
 
       const solHealthFactor =
@@ -278,6 +291,63 @@ export const useDashboardData = () => {
           totalDeposited: accountInfo.depositedUsdc.toNumber(),
         },
       });
+
+      // Calculating Liquidate Section Data
+
+      const users = await program.account.user.all();
+      // Collect users with health factor < 1
+      const afterBalanceSol = accountInfo.depositedSol.toNumber();
+      const afterBalanceUSDC = accountInfo.depositedUsdc.toNumber();
+      const MinAmountRequiredSol = (afterBalanceSol * 80) / 100;
+      const MinAmountRequiredUsdc = (afterBalanceUSDC * 80) / 100;
+
+      const maxSafeWithDrawalSol =
+        accountInfo.depositedSol.toNumber() - MinAmountRequiredSol;
+      const maxSafeWithDrawalUsdc =
+        accountInfo.depositedSol.toNumber() - MinAmountRequiredUsdc;
+
+      setmaxSafeWithDrawal({
+        sol: maxSafeWithDrawalSol,
+        usdc: maxSafeWithDrawalUsdc,
+      });
+      const HealthFactorSol = Number(
+        Number(
+          MinAmountRequiredSol / accountInfo?.borrowedSol.toNumber()
+        ).toFixed(2)
+      );
+      const HealthFactorUsdc = Number(
+        Number(
+          MinAmountRequiredUsdc / accountInfo.borrowedUsdc.toNumber()
+        ).toFixed(2)
+      );
+      seHealthFactorSol(HealthFactorSol);
+      setHealthFactorUsdc(HealthFactorUsdc);
+      // Get all users in liquidation
+      const liquidatableUsers = users.filter((dta) => {
+        const HealthFactorSol = Number(
+          Number(
+            MinAmountRequiredSol / accountInfo?.borrowedSol.toNumber()
+          ).toFixed(2)
+        );
+
+        const HealthFactorUsdc = Number(
+          Number(
+            MinAmountRequiredUsdc / accountInfo.borrowedUsdc.toNumber()
+          ).toFixed(2)
+        );
+        console.log(`hf sol`, HealthFactorSol);
+        console.log(`hf usdc`, HealthFactorUsdc);
+        // If either position has HF < 1, mark as liquidatable
+        return (
+          HealthFactorSol < 1 ||
+          HealthFactorUsdc < 1 ||
+          !HealthFactorSol ||
+          !HealthFactorUsdc
+        );
+      });
+
+      console.log(liquidatableUsers);
+      setPositions(liquidatableUsers);
     } catch (err) {
       console.log(`Something went wrong -`, err);
       setError(
@@ -311,8 +381,18 @@ export const useDashboardData = () => {
     bankInfo,
     loading,
     error,
-    refetch: fetchDashboardData,
+    refetch: () => {
+      fetchDashboardData();
+    },
     userAccountInfo,
     setuserAccountInfo,
+    Positions,
+    setPositions,
+    HealthFactorSol,
+    seHealthFactorSol,
+    HealthFactorUsdc,
+    setHealthFactorUsdc,
+    maxSafeWithDrawal,
+    setmaxSafeWithDrawal,
   };
 };

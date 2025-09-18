@@ -32,7 +32,7 @@ export default function RepayTab({
   bankInfo: BankInfo;
   userAccountInfo: UserAccInfo;
   bankBalances: bankBalances;
-  refetch: () => Promise<void>;
+  refetch: any;
   connection: Connection;
 }) {
   const wallet = useWallet();
@@ -93,7 +93,7 @@ export default function RepayTab({
       console.log(txSig);
 
       await connection.confirmTransaction(txSig, "confirmed");
-
+      refetch();
       setState("success");
       setHash("");
       setValue("");
@@ -120,7 +120,11 @@ export default function RepayTab({
       setbalance(uiAmount);
     };
     getMaxBalance();
-  }, []);
+  }, [value, token]);
+
+  useEffect(() => {
+    setValue("0");
+  }, [token]);
 
   return (
     <Card className="border-black/10">
@@ -135,7 +139,7 @@ export default function RepayTab({
           >
             Current debt:{" "}
             <span className="font-mono">
-              {token}: {currentDebt}
+              {token}: {String(currentDebt)}
             </span>
           </div>
           <TokenSelector
@@ -145,7 +149,7 @@ export default function RepayTab({
           />
           <AmountInput
             token={token}
-            maxAmount={0}
+            maxAmount={Number(currentDebt)}
             value={value}
             onChange={setValue}
             onMax={() => setValue(String(currentDebt))}

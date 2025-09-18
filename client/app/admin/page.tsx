@@ -51,19 +51,7 @@ import IDL from "../../../target/idl/lending_app.json";
 import { LendingApp } from "../../../target/types/lending_app";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { toast } from "sonner";
-
-export const SUPPORTED_TOKENS = [
-  {
-    symbol: "USDC",
-    mint: "9SFMpR2owdeZpGRLomHsDtx5rEf2bVuo3XCgSjyAVUf4",
-    img: "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/usdc-devnet.png",
-  },
-  {
-    symbol: "SOL",
-    mint: "J8NDF3RxtfZ5E2vks2NdchwE3PXNMNwUngCpEbMoLaoL",
-    img: "https://mcvzbtnedtysipzkwmuz.supabase.co/storage/v1/object/public/uploads/solana-coin.png",
-  },
-] as const;
+import { SUPPORTED_TOKENS } from "@/lib/data";
 
 const PUBKEY_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 

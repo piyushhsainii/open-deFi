@@ -32,7 +32,7 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import { LendingApp } from "../../../target/types/lending_app";
-import { Program } from "@coral-xyz/anchor";
+import { BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../programs/lending-app/src/build/lending_app.json";
 import { toast } from "sonner";
 
@@ -68,6 +68,7 @@ export default function DashboardPage() {
     connecting,
     sendTransaction,
   } = useWallet();
+
   const [alertDialogOpen, setalertDialogOpen] = useState(false);
   const [token, setToken] = useState<Token>("USDC");
   const [value, setValue] = useState("");
@@ -81,6 +82,11 @@ export default function DashboardPage() {
     bankInfo,
     setuserAccountInfo,
     userAccountInfo,
+    Positions,
+    setPositions,
+    maxSafeWithDrawal,
+    HealthFactorSol,
+    HealthFactorUsdc,
   } = useDashboardData();
 
   const connection = new Connection(
@@ -347,7 +353,14 @@ export default function DashboardPage() {
                   value="liquidate"
                   className="transition-all duration-300 ease-in-out"
                 >
-                  <LiquidateTab />
+                  <LiquidateTab
+                    Positions={Positions}
+                    setPositions={setPositions}
+                    bankInfo={bankInfo}
+                    maxSafeWithDrawal={maxSafeWithDrawal}
+                    HealthFactorSol={HealthFactorSol}
+                    HealthFactorUsdc={HealthFactorUsdc}
+                  />
                 </TabsContent>
               </Tabs>
             </section>
