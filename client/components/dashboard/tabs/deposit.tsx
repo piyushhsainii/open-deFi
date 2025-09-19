@@ -12,7 +12,7 @@ import {
   TOKEN_2022_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
-import { LendingApp } from "../../../../target/types/lending_app";
+import type { LendingApp } from "../../../../programs/lending-app/src/build/lending_app";
 import { BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../../programs/lending-app/src/build/lending_app.json";
 import { toast } from "sonner";

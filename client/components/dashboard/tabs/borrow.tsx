@@ -14,7 +14,7 @@ import {
 } from "@/components/hooks/useDashboardData";
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
 import { Program, BN } from "@coral-xyz/anchor";
-import { LendingApp } from "../../../../target/types/lending_app";
+import type { LendingApp } from "../../../../programs/lending-app/src/build/lending_app";
 import IDL from "../../../../programs/lending-app/src/build/lending_app.json";
 import { PYTH_SOL_PRICE, PYTH_USDC_PRICE, token_address } from "@/lib/data";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
