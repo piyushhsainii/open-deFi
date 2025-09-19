@@ -48,7 +48,7 @@ import {
 } from "@solana/web3.js";
 import { AnchorProvider, BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../programs/lending-app/src/build/lending_app.json";
-import { LendingApp } from "../../../target/types/lending_app";
+import { LendingApp } from "../../../programs/lending-app/src/build/lending_app"
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { toast } from "sonner";
 import { SUPPORTED_TOKENS } from "@/lib/data";
