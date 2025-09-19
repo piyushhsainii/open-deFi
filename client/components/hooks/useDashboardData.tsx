@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Program, BN } from "@coral-xyz/anchor";
-import { LendingApp } from "../../../target/types/lending_app";
+import { LendingApp } from "../../../programs/lending-app/src/build/lending_app";
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 import IDL from "../../../programs/lending-app/src/build/lending_app.json";
 import { SUPPORTED_TOKENS } from "@/lib/data";
