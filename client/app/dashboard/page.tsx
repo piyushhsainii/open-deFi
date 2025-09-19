@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PortfolioCards } from "@/components/dashboard/portfolio-cards";
-import { AccountSummary } from "@/components/dashboard/account-summary";
 import DepositTab from "@/components/dashboard/tabs/deposit";
 import BorrowTab from "@/components/dashboard/tabs/borrow";
 import RepayTab from "@/components/dashboard/tabs/repay";
@@ -31,7 +30,7 @@ import {
   PublicKey,
   Transaction,
 } from "@solana/web3.js";
-import { LendingApp } from "../../../target/types/lending_app";
+import { LendingApp } from "../../../programs/lending-app/src/build/lending_app";
 import { BN, Program } from "@coral-xyz/anchor";
 import IDL from "../../../programs/lending-app/src/build/lending_app.json";
 import { toast } from "sonner";
