@@ -1,5 +1,8 @@
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
 /** @type {import('next').NextConfig} */
-export const nextConfig = {
+const nextConfig = {
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -16,13 +19,12 @@ export const nextConfig = {
         assert: require.resolve("assert"),
         os: false,
         path: false,
-        "pino-pretty": false, // ← Add this line
+        "pino-pretty": false,
       };
     }
     return config;
   },
-  experimental: {
-    esmExternals: "loose",
-  },
   transpilePackages: ["@solana/wallet-adapter-base"],
 };
+
+export default nextConfig;
